@@ -1,7 +1,7 @@
 {
   "name": "aerotunnel",
   "version": "1.0.0",
-  "description": "AeroTunnel — VLESS/Trojan WebSocket Backend",
+  "description": "AeroTunnel — VLESS/Trojan/SSH WebSocket Backend + Stunnel",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

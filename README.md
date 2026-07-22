@@ -1,129 +1,118 @@
 # 🚀 AEROTUNNEL
 
-Backend tunneling WebSocket ringan untuk VLESS & Trojan. Jalan di platform serverless/PaaS (Railway, Fly.io, dll) tanpa root/kernel access.
+Backend tunneling WebSocket ringan buat VLESS, Trojan & SSH. Jalan di platform serverless/PaaS (Railway, Fly.io, dll) tanpa root/kernel access.
+
+**Satu container = AeroTunnel (VLESS/Trojan) + SSH (via Stunnel).**
 
 ---
 
-## ✨ Fitur Utama
+## ✨ Fitur
 
-* **Pure Node.js:** Tanpa perlu instalasi *core* eksternal (seperti Xray/v2ray) atau dependensi tingkat OS.
-* **Protokol Ganda:** Mendukung *inbound* VLESS dan Trojan secara bersamaan dalam satu *port*.
-* **Direct Routing:** Meneruskan trafik TCP dan UDP secara langsung (Native `dgram`) ke internet.
-* **Premium Dashboard:** Dilengkapi UI berdesain Vercel x macOS Premium untuk memantau status *Uptime* dan kalkulasi *Bandwidth* (TX/RX) secara *real-time*.
-* **Quick Generator:** Fitur *1-click generate* & *copy* untuk merakit URI VLESS dan Trojan secara otomatis dari halaman dasbor utama.
-* **Auto-Port Binding:** Otomatis mendeteksi dan menyesuaikan *port* internal yang diberikan oleh sistem *cloud*.
-
----
-
-## 🌍 PRA-DEPLOYMENT: Mengubah Region ke Singapura (PENTING)
-
-Agar koneksi VPN Anda memiliki latensi (*ping*) yang rendah dan stabil, sangat disarankan untuk mengubah lokasi *server* Railway ke Singapura sebelum melakukan *deploy*.
-
-1. Masuk ke *dashboard* [Railway](https://railway.app/).
-2. Buat proyek baru dengan mengklik **New Project** -> **Empty Project**.
-3. Di dalam proyek tersebut, klik tombol **Settings** (ikon roda gigi) di pojok kanan atas, atau masuk ke menu **Settings** -> tab **Environments**.
-4. Cari opsi **Region** dan ubah lokasinya dari lokasi *default* (biasanya *US West*) menjadi **Singapore (Asia)**.
-5. Setelah region tersimpan, kembali ke tampilan kanvas proyek Anda untuk memulai *deployment*.
+* **Pure Node.js:** Tanpa core eksternal (Xray/v2ray).
+* **Protokol Ganda:** VLESS + Trojan dalam 1 port.
+* **SSH Tunnel:** SSH via Stunnel + TLS, port terpisah.
+* **Dashboard:** UI mac-style, monitor uptime & bandwidth real-time.
+* **Quick Generator:** 1-click generate & copy URI VLESS/Trojan.
+* **Auto-Port Binding:** Deteksi port dari cloud platform.
 
 ---
 
-## ⚙️ Panduan Deployment (Railway)
+## 🧱 Port Mapping
 
-Setelah wilayah *server* dipastikan berada di Singapura, ikuti langkah berikut:
+| Service | Port | Env |
+|---------|------|-----|
+| AeroTunnel (WS/HTTP) | `$PORT` (default 8080) | `PORT` |
+| SSH via Stunnel | `$PORT_SSH` (default 2222) | `PORT_SSH` |
 
-1. **Fork atau Upload** repositori ini (berisi `server.js` dan `package.json`) ke akun GitHub Anda.
-2. Pada kanvas proyek Railway yang sudah diatur regionnya tadi, klik **New** -> **GitHub Repo**.
-3. Pilih repositori AEROTUNNEL yang baru saja Anda buat.
-4. Railway akan otomatis mendeteksi lingkungan Node.js, menginstal dependensi (`ws`), dan menjalankan server.
-5. Setelah status *deploy* menjadi hijau (Success), masuk ke pengaturan *service* tersebut, buka tab **Networking**, lalu klik **Generate Domain**.
-6. Buka *domain publik* tersebut di *browser* Anda. Jika Anda melihat dasbor **AEROTUNNEL** dengan status *Running*, server siap digunakan!
+---
+
+## 🌍 Deployment (Railway)
+
+1. Fork repositori ini ke GitHub.
+2. **PENTING:** Ubah region Railway ke **Singapore (Asia)** sebelum deploy.
+3. Buat proyek Railway → **New** → **GitHub Repo** → pilih repo ini.
+4. Set deploy success → **Networking** → **Generate Domain**.
+5. Buka domain → dashboard AeroTunnel muncul.
 
 ---
 
 ## 📱 Konfigurasi Klien VPN
 
-Anda memiliki dua opsi untuk memasukkan konfigurasi ke dalam aplikasi VPN klien (Nekobox, v2rayNG, NapsternetV, dll):
+### Opsi 1: Quick Generator (Dashboard)
+Buka dashboard, klik **Generate VLESS** / **Generate TROJAN**, copy.
 
-### Opsi 1: Otomatis via Quick Generator (Direkomendasikan)
-1. Buka halaman web domain Railway Anda.
-2. Pada bagian bawah dasbor, klik tombol **Generate VLESS** atau **Generate TROJAN**.
-3. *Script* akan otomatis membuatkan konfigurasi dengan UUID acak yang valid.
-4. Klik tombol **Copy** dan *Import from Clipboard* di aplikasi VPN Anda.
+### Opsi 2: Manual
 
-### Opsi 2: Konfigurasi Manual
-Jika ingin memasukkannya secara manual, pastikan Anda menggunakan **Port 443** dan mengaktifkan **TLS**.
+**VLESS (WSS):**
+| Field | Value |
+|-------|-------|
+| Address | domain Railway |
+| Port | 443 |
+| UUID | uuid-v4 bebas |
+| Network | `ws` |
+| Path | `/aerotunnel` |
+| TLS | `tls` |
+| SNI | domain Railway |
 
-**Format VLESS (WSS):**
-* **Address / Server:** `[domain-railway-anda].up.railway.app`
-* **Port:** `443`
-* **UUID:** `[isi-dengan-uuid-v4-bebas]`
-* **Network / Transport:** `ws` (WebSocket)
-* **Path:** `/aerotunnel`
-* **TLS / Security:** `tls`
-* **SNI / Server Name:** `[domain-railway-anda].up.railway.app`
-* **ALPN:** Kosongkan atau pilih `http/1.1`
-
-**Format Trojan (WSS):**
-* **Address / Server:** `[domain-railway-anda].up.railway.app`
-* **Port:** `443`
-* **Password:** `[isi-password-bebas]`
-* **Network / Transport:** `ws` (WebSocket)
-* **Path:** `/aerotunnel`
-* **TLS / Security:** `tls`
-* **SNI / Server Name:** `[domain-railway-anda].up.railway.app`
+**Trojan (WSS):**
+| Field | Value |
+|-------|-------|
+| Address | domain Railway |
+| Port | 443 |
+| Password | bebas |
+| Network | `ws` |
+| Path | `/aerotunnel` |
+| TLS | `tls` |
+| SNI | domain Railway |
 
 ---
 
-## ⚠️ Catatan Penting
+## 🔐 SSH Tunnel
 
-* **Data Dasbor Volatil:** Fitur pelacak *bandwidth* (TX/RX) berjalan secara *in-memory*. Artinya, jika kontainer Railway mengalami *restart* (karena *deploy* ulang atau pemeliharaan *server* internal mereka), hitungan data akan kembali ke `0 B`.
-* **Limitasi UDP WebRTC:** Sistem ini menggunakan *UDP over TCP* secara *native* di Node.js. Fitur ini mumpuni untuk *gaming* atau tes DNS, namun mungkin akan mengalami kendala atau *timeout* jika digunakan untuk panggilan *Video/Voice* berbasis WebRTC (seperti WhatsApp Call) karena keterbatasan NAT platform *cloud*. Wajib hidupkan **TUN Mode** di aplikasi VPN Anda agar UDP tertangkap secara maksimal.
-* **Rotasi IP:** Egress IP (IP Publik yang terbaca di internet) akan otomatis mengikuti IP *pool* dinamis milik Railway atau mitra GCP mereka, dan dapat berubah-ubah seiring waktu.
+Bawaan container ini ada SSH server via Stunnel + TLS.
+
+### Env Variables
+| Variable | Default | Fungsi |
+|----------|---------|--------|
+| `SSH_USER` | `j1btnl` | Username SSH default |
+| `SSH_PASSWORD` | `j1btnl` | Password SSH default |
+| `PORT_SSH` | `2222` | Port Stunnel (SSH) |
+
+### Client SSH (Example)
+```bash
+ssh -o ProxyCommand='openssl s_client -connect domain.railway.app:2222 -quiet' user@localhost
+```
+Atau pake apps like JuiceSSH, termux — aktifkan TLS/SSL, port `2222`.
+
+### Management di Container
+```bash
+addssh <user> <pass> <hari>   # buat user SSH
+delssh <user>                  # hapus user
+listssh                        # daftar user & expired
+```
 
 ---
 
-## 🔀 Alternatif Deployment Lain
+## ⚠️ Catatan
 
-Selain Railway, AeroTunnel bisa jalan di platform lain. Juga tersedia opsi rewrite/alternatif.
+* **Data Volatil:** Bandwidth tracker in-memory — reset pas container restart.
+* **UDP Limit:** UDP over TCP native. Enable TUN Mode di client VPN.
+* **Rotasi IP:** IP pool dinamis Railway/GCP.
 
-### 1. Go rewrite — `golang-tunnel/`
+---
 
-Performa jauh lebih tinggi, memori hemat, cocok buat tunnel. WebSocket + TCP/UDP forwarding pake `gorilla/websocket`.
+## 🔀 Alternatif
 
+### Go rewrite — `golang-tunnel/`
 ```bash
-cd golang-tunnel
-go mod init aerotunnel
-go get github.com/gorilla/websocket
-go run main.go
+cd golang-tunnel && go run main.go
 ```
 
-Deploy: build binary, upload ke VPS/Fly.io/Railway via Docker.
+### sing-box — `sing-box/`
+Config-based, support VLESS/Trojan/Shadowsocks native.
 
-### 2. sing-box — `sing-box/`
-
-No code needed, konfigurasi-based aja. Jauh lebih stabil, support VLESS/Trojan/Shadowsocks native.
-
-Cara pake di VPS:
-```bash
-# install sing-box (linux amd64)
-bash <(curl -fsSL https://sing-box.app/deb-install.sh)
-# taruh config.json di /etc/sing-box/config.json
-systemctl start sing-box
-```
-
-Juga bisa di-dockerize untuk Railway/Fly.io.
-
-### 3. Xray-core via Docker — `xray-docker/`
-
-Deploy Xray langsung pake Dockerfile, tanpa JS wrapper. Performa native.
-
-```bash
-cd xray-docker
-# Build & run
-docker build -t aerotunnel-xray .
-docker run -d -p 443:443 aerotunnel-xray
-# Atau deploy ke Railway/Fly.io langsung dari folder ini
-```
+### Xray-core — `xray-docker/`
+Docker, performa native.
 
 ---
 

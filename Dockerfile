@@ -1,6 +1,10 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PORT=8080
+ENV PORT_SSH=2222
+ENV SSH_USER=j1btnl
+ENV SSH_PASSWORD=j1btnl
 
 RUN apt-get update && apt-get install -y \
     openssh-server \

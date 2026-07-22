@@ -69,7 +69,30 @@ Buka dashboard, klik **Generate VLESS** / **Generate TROJAN**, copy.
 
 ## 🔐 SSH Tunnel
 
-Bawaan container ini ada SSH server via Stunnel + TLS.
+Container ini punya **2 cara** akses SSH:
+
+### Opsi 1: Stunnel (Port terpisah)
+SSH via Stunnel + TLS di `$PORT_SSH` (default 2222). **Catatan:** Railway cuma expose 1 port (`$PORT`), jadi cara ini cuma jalan di VPS atau platform yg buka multiple port.
+
+```bash
+ssh -o ProxyCommand='openssl s_client -connect HOST:PORT_SSH -quiet' user@localhost
+```
+
+### Opsi 2: WebSocket (1 port — recommended untuk Railway)
+AeroTunnel proxy SSH lewat WebSocket di path `/ssh` — pake port yg sama (`$PORT`). Butuh client `websocat`:
+
+```bash
+# Install websocat dulu
+# Connect: WS pipe ke SSH
+websocat ws://HOST/ssh -- ssh user@localhost
+```
+
+Atau pake script `ssh-ws.sh`:
+```bash
+#!/bin/bash
+# ssh-ws.sh <host> <port> <user>
+websocat ws://$1:$2/ssh -- ssh $3@localhost
+```
 
 ### Env Variables
 | Variable | Default | Fungsi |
@@ -77,12 +100,6 @@ Bawaan container ini ada SSH server via Stunnel + TLS.
 | `SSH_USER` | `j1btnl` | Username SSH default |
 | `SSH_PASSWORD` | `j1btnl` | Password SSH default |
 | `PORT_SSH` | `2222` | Port Stunnel (SSH) |
-
-### Client SSH (Example)
-```bash
-ssh -o ProxyCommand='openssl s_client -connect domain.railway.app:2222 -quiet' user@localhost
-```
-Atau pake apps like JuiceSSH, termux — aktifkan TLS/SSL, port `2222`.
 
 ### Management di Container
 ```bash

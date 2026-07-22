@@ -1,0 +1,70 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "port": 443,
+      "protocol": "vless",
+      "tag": "vless-ws",
+      "settings": {
+        "clients": [
+          { "id": "replace-with-uuid", "flow": "xtls-rprx-vision" }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": {
+          "path": "/aerotunnel"
+        },
+        "security": "tls",
+        "tlsSettings": {
+          "serverName": "replace-with-your-domain.com",
+          "certificates": [
+            {
+              "certificateFile": "/etc/ssl/cert.pem",
+              "keyFile": "/etc/ssl/key.pem"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "port": 443,
+      "protocol": "trojan",
+      "tag": "trojan-ws",
+      "settings": {
+        "clients": [
+          { "password": "replace-your-password" }
+        ]
+      },
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": {
+          "path": "/aerotunnel"
+        },
+        "security": "tls",
+        "tlsSettings": {
+          "serverName": "replace-with-your-domain.com",
+          "certificates": [
+            {
+              "certificateFile": "/etc/ssl/cert.pem",
+              "keyFile": "/etc/ssl/key.pem"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "tag": "direct-out"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "block-out"
+    }
+  ]
+}

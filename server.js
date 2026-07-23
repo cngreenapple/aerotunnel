@@ -4,48 +4,8 @@ const http = require('http');
 const url = require('url');
 
 const WS_READY_STATE_OPEN = 1;
-const PROXY_LIST_URL = "https://raw.githubusercontent.com/FoolVPN-ID/Nautica/refs/heads/main/proxyList.txt";
 
 const PROTOCOLS = { TROJAN: 'Trojan', VLESS: 'VLESS' };
-
-// ==================== PROXY LIST ====================
-let cachedProxyList = null, cacheTime = 0;
-const CACHE_TTL = 300000;
-
-async function fetchProxyList() {
-  const now = Date.now();
-  if (cachedProxyList && (now - cacheTime) < CACHE_TTL) return cachedProxyList;
-  try {
-    const resp = await fetch(PROXY_LIST_URL);
-    const text = await resp.text();
-    const pm = new Map();
-    for (const line of text.split('\n')) {
-      if (line.trim() && !line.startsWith('#')) {
-        const parts = line.split(',');
-        if (parts.length >= 3) {
-          const ps = parts[0].trim() + ':' + parts[1].trim();
-          const cc = parts[2].trim();
-          if (!pm.has(cc)) pm.set(cc, []);
-          pm.get(cc).push(ps);
-        }
-      }
-    }
-    cachedProxyList = pm; cacheTime = now; return pm;
-  } catch (e) { return cachedProxyList || new Map(); }
-}
-
-async function getProxyFromPath(pathname) {
-  if (!pathname || pathname === '/') return null;
-  const cmd = pathname.substring(1).split('/')[0].toUpperCase();
-  const pm = await fetchProxyList();
-  if (pm.has(cmd)) { const p = pm.get(cmd); return p[Math.floor(Math.random() * p.length)]; }
-  const mi = cmd.match(/^([A-Z]{2})(\d+)$/);
-  if (mi && pm.has(mi[1])) { const p = pm.get(mi[1]); return p[parseInt(mi[2]) - 1] || null; }
-  if (cmd === 'ALL') { const all = []; for (const v of pm.values()) all.push(...v); return all.length ? all[Math.floor(Math.random() * all.length)] : null; }
-  const ipm = pathname.match(/^\/([\d\.]+)[:=:-](\d+)$/);
-  if (ipm) return ipm[1] + ':' + ipm[2];
-  return null;
-}
 
 // ==================== PROTOCOL PARSERS ====================
 function detectProtocol(buf) {
@@ -103,8 +63,7 @@ function handleTCP(remoteSocket, addressRemote, portRemote, rawClientData, ws, r
 }
 
 // ==================== WEBSOCKET HANDLER ====================
-async function websocketHandler(ws, pathname) {
-  const proxyFromPath = await getProxyFromPath(pathname);
+async function websocketHandler(ws) {
   let remoteSocketWrapper = { value: null };
 
   ws.on('message', async (message) => {
@@ -144,16 +103,10 @@ const server = http.createServer(async (req, res) => {
 
   if (p.pathname === '/api/stats') {
     const mem = process.memoryUsage();
-    const cpus = require('os').cpus();
-    const load = cpus.length;
     res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
     res.end(JSON.stringify({
       uptime: Math.floor(process.uptime()),
-      node: process.version,
-      platform: process.platform,
-      arch: process.arch,
-      cpu: load,
-      mem: { rss: mem.rss, heap: mem.heapUsed, total: mem.heapTotal },
+      mem: { heap: mem.heapUsed, total: mem.heapTotal },
       rx: stats.rx, tx: stats.tx
     }));
     return;
@@ -172,14 +125,12 @@ const server = http.createServer(async (req, res) => {
 <style>
 *{font-family:'Inter',sans-serif}
 .glow{box-shadow:0 0 20px rgba(59,130,246,.15)}
-.glow-green{box-shadow:0 0 20px rgba(16,185,129,.15)}
 .card-hover{transition:all .2s}
 .card-hover:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.3)}
 </style>
 </head>
 <body class="bg-[#0a0b10] text-white min-h-screen">
-<div class="max-w-5xl mx-auto px-4 py-8">
-  <!-- Header -->
+<div class="max-w-3xl mx-auto px-4 py-8">
   <div class="flex items-center justify-between mb-8">
     <div>
       <h1 class="text-2xl font-bold tracking-tight">Aero<span class="text-blue-400">Tunnel</span></h1>
@@ -191,7 +142,6 @@ const server = http.createServer(async (req, res) => {
     </div>
   </div>
 
-  <!-- Stats Grid -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
     <div class="bg-[#11131f] border border-gray-800 rounded-xl p-4 card-hover glow">
       <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Uptime</p>
@@ -211,7 +161,6 @@ const server = http.createServer(async (req, res) => {
     </div>
   </div>
 
-  <!-- Generator -->
   <div class="bg-[#11131f] border border-gray-800 rounded-xl p-6 mb-8">
     <p class="text-xs text-gray-500 uppercase tracking-wider mb-4">Quick Config Generator</p>
     <div class="flex flex-wrap gap-3 mb-4">
@@ -224,64 +173,19 @@ const server = http.createServer(async (req, res) => {
     </div>
   </div>
 
-  <!-- Proxy Info -->
   <div class="bg-[#11131f] border border-gray-800 rounded-xl p-6">
-    <p class="text-xs text-gray-500 uppercase tracking-wider mb-4">Proxy Routing — Cara Penggunaan</p>
-    <p class="text-sm text-gray-400 mb-4">Hubungkan klien VPN Anda ke <code class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">wss://domain-anda.up.railway.app/PATH</code></p>
-    <div class="space-y-3 text-sm">
-      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
-        <span class="text-blue-400 font-semibold">/aerotunnel</span>
-        <span class="text-gray-500 mx-2">→</span>
-        <span class="text-gray-400">Koneksi langsung (tanpa proxy) — untuk server Railway sendiri</span>
-      </div>
-      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
-        <span class="text-blue-400 font-semibold">/ID</span>
-        <span class="text-gray-500 mx-2">→</span>
-        <span class="text-gray-400">Proxy Indonesia (acak)</span>
-      </div>
-      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
-        <span class="text-blue-400 font-semibold">/SG</span>
-        <span class="text-gray-500 mx-2">→</span>
-        <span class="text-gray-400">Proxy Singapore (acak)</span>
-      </div>
-      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
-        <span class="text-blue-400 font-semibold">/JP</span>
-        <span class="text-gray-500 mx-2">→</span>
-        <span class="text-gray-400">Proxy Japan (acak)</span>
-      </div>
-      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
-        <span class="text-blue-400 font-semibold">/US</span>
-        <span class="text-gray-500 mx-2">→</span>
-        <span class="text-gray-400">Proxy USA (acak)</span>
-      </div>
-      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
-        <span class="text-blue-400 font-semibold">/ALL</span>
-        <span class="text-gray-500 mx-2">→</span>
-        <span class="text-gray-400">Proxy global (acak dari semua negara)</span>
-      </div>
-      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
-        <span class="text-blue-400 font-semibold">/ID1, /SG2, /JP3</span>
-        <span class="text-gray-500 mx-2">→</span>
-        <span class="text-gray-400">Proxy index spesifik (nomor urut 1,2,3...)</span>
-      </div>
-      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
-        <span class="text-blue-400 font-semibold">/IP:PORT</span>
-        <span class="text-gray-500 mx-2">→</span>
-        <span class="text-gray-400">Proxy langsung ke IP tertentu (contoh: <code class="text-gray-300">/103.6.207.108:8080</code>)</span>
-      </div>
-    </div>
-    <div class="mt-4 pt-4 border-t border-gray-800">
-      <p class="text-xs text-gray-600">Contoh konfigurasi klien — Path: <code class="text-gray-400">/ID</code>, TLS aktif, Port 443</p>
-    </div>
+    <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Cara Pakai</p>
+    <p class="text-sm text-gray-400">Hubungkan klien VPN ke <code class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">wss://domain-anda.up.railway.app/aerotunnel</code></p>
+    <p class="text-sm text-gray-500 mt-2">Path: <code class="text-gray-400">/aerotunnel</code>, Port: 443, TLS aktif</p>
   </div>
 </div>
 
 <script>
 function fmt(b){if(b===0)return'0 B';const k=1024,s=['B','KB','MB','GB','TB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]}
 function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),s2=s%60;return(d>0?d+'d ':'')+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0')}
-async function ref(){try{const r=await fetch('/api/stats'),d=await r.json();document.getElementById('uptime').innerText=fmtT(d.uptime);document.getElementById('tx').innerText=fmt(d.tx);document.getElementById('rx').innerText=fmt(d.rx);const pct=Math.round(d.mem.heap/d.mem.total*100);document.getElementById('mem').innerText=pct+'%'}catch(e){}}
+async function ref(){try{const r=await fetch('/api/stats'),d=await r.json();document.getElementById('uptime').innerText=fmtT(d.uptime);document.getElementById('tx').innerText=fmt(d.tx);document.getElementById('rx').innerText=fmt(d.rx);document.getElementById('mem').innerText=Math.round(d.mem.heap/d.mem.total*100)+'%'}catch(e){}}
 ref();setInterval(ref,2000);
-function gen(t){const h=window.location.hostname,u='3b01a777-55e7-49f6-8637-d94ee69607c6',uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&type=ws&host='+h+'&path=%2FID#AEROTUNNEL-VLESS':'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&type=ws&host='+h+'&path=%2FID#AEROTUNNEL-TROJAN';document.getElementById('out').value=uri;document.getElementById('cpy').innerText='Copy'}
+function gen(t){const h=window.location.hostname,u='3b01a777-55e7-49f6-8637-d94ee69607c6',uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-VLESS':'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-TROJAN';document.getElementById('out').value=uri;document.getElementById('cpy').innerText='Copy'}
 function cp(){const t=document.getElementById('out');if(!t.value)return;t.select();navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById('cpy');b.innerText='Copied!';setTimeout(()=>{if(b.innerText==='Copied!')b.innerText='Copy'},2000)}).catch(e=>console.error(e))}
 </script>
 </body>
@@ -294,7 +198,11 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
 
 // ==================== WEBSOCKET SERVER ====================
 const wss = new WebSocket.Server({ server, perMessageDeflate: false });
-wss.on('connection', (ws, req) => websocketHandler(ws, url.parse(req.url).pathname));
+wss.on('connection', (ws, req) => {
+  const path = url.parse(req.url).pathname;
+  if (path === '/aerotunnel') websocketHandler(ws);
+  else ws.close();
+});
 
 // ==================== START ====================
 const PORT = process.env.PORT || 8080;

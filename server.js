@@ -129,54 +129,48 @@ const server = http.createServer(async (req, res) => {
 .card-hover:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.3)}
 </style>
 </head>
-<body class="bg-[#0a0b10] text-white min-h-screen">
-<div class="max-w-3xl mx-auto px-4 py-8">
-  <div class="flex items-center justify-between mb-8">
+<body class="bg-[#0a0b10] text-white min-h-screen flex items-center justify-center p-4">
+<div class="w-full max-w-md mx-auto">
+  <div class="flex items-center justify-between mb-6">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight">Aero<span class="text-blue-400">Tunnel</span></h1>
-      <p class="text-sm text-gray-500 mt-1">WebSocket VPN Gateway</p>
+      <h1 class="text-xl font-bold tracking-tight">Aero<span class="text-blue-400">Tunnel</span></h1>
+      <p class="text-xs text-gray-500 mt-0.5">WebSocket VPN Gateway</p>
     </div>
-    <div class="flex items-center gap-2 bg-[#11131f] border border-gray-800 rounded-full px-4 py-2">
-      <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-      <span class="text-xs font-medium text-green-400 tracking-wide">RUNNING</span>
-    </div>
-  </div>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <div class="bg-[#11131f] border border-gray-800 rounded-xl p-4 card-hover glow">
-      <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Uptime</p>
-      <p class="text-xl font-bold" id="uptime">00:00:00</p>
-    </div>
-    <div class="bg-[#11131f] border border-gray-800 rounded-xl p-4 card-hover">
-      <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Download (TX)</p>
-      <p class="text-xl font-bold text-green-400" id="tx">0 B</p>
-    </div>
-    <div class="bg-[#11131f] border border-gray-800 rounded-xl p-4 card-hover">
-      <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Upload (RX)</p>
-      <p class="text-xl font-bold text-blue-400" id="rx">0 B</p>
-    </div>
-    <div class="bg-[#11131f] border border-gray-800 rounded-xl p-4 card-hover">
-      <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Memory</p>
-      <p class="text-xl font-bold" id="mem">-</p>
+    <div class="flex items-center gap-1.5 bg-[#11131f] border border-gray-800 rounded-full px-3 py-1.5">
+      <div class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+      <span class="text-[10px] font-medium text-green-400 tracking-wide">RUNNING</span>
     </div>
   </div>
 
-  <div class="bg-[#11131f] border border-gray-800 rounded-xl p-6 mb-8">
-    <p class="text-xs text-gray-500 uppercase tracking-wider mb-4">Quick Config Generator</p>
-    <div class="flex flex-wrap gap-3 mb-4">
-      <button onclick="gen('vless')" class="bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 px-5 py-2.5 rounded-lg text-sm font-semibold transition">VLESS</button>
-      <button onclick="gen('trojan')" class="bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 px-5 py-2.5 rounded-lg text-sm font-semibold transition">TROJAN</button>
+  <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="bg-[#11131f] border border-gray-800 rounded-xl p-3 card-hover glow">
+      <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Uptime</p>
+      <p class="text-lg font-bold" id="uptime">00:00:00</p>
+    </div>
+    <div class="bg-[#11131f] border border-gray-800 rounded-xl p-3 card-hover">
+      <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Download</p>
+      <p class="text-lg font-bold text-green-400" id="tx">0 B</p>
+    </div>
+    <div class="bg-[#11131f] border border-gray-800 rounded-xl p-3 card-hover">
+      <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Upload</p>
+      <p class="text-lg font-bold text-blue-400" id="rx">0 B</p>
+    </div>
+    <div class="bg-[#11131f] border border-gray-800 rounded-xl p-3 card-hover">
+      <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Memory</p>
+      <p class="text-lg font-bold" id="mem">-</p>
+    </div>
+  </div>
+
+  <div class="bg-[#11131f] border border-gray-800 rounded-xl p-4">
+    <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-3">Config Generator</p>
+    <div class="flex gap-2 mb-3">
+      <button onclick="gen('vless')" class="flex-1 bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 py-2 rounded-lg text-xs font-semibold transition">VLESS</button>
+      <button onclick="gen('trojan')" class="flex-1 bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 py-2 rounded-lg text-xs font-semibold transition">TROJAN</button>
     </div>
     <div class="flex gap-2">
-      <input type="text" id="out" readonly class="flex-1 bg-[#0a0b10] border border-gray-800 text-gray-400 px-4 py-3 rounded-lg text-sm font-mono outline-none focus:border-gray-600" placeholder="Select protocol...">
-      <button onclick="cp()" id="cpy" class="bg-white text-black px-5 py-3 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">Copy</button>
+      <input type="text" id="out" readonly class="flex-1 bg-[#0a0b10] border border-gray-800 text-gray-400 px-3 py-2 rounded-lg text-xs font-mono outline-none focus:border-gray-600" placeholder="Select...">
+      <button onclick="cp()" id="cpy" class="bg-white text-black px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-200 transition">Copy</button>
     </div>
-  </div>
-
-  <div class="bg-[#11131f] border border-gray-800 rounded-xl p-6">
-    <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Cara Pakai</p>
-    <p class="text-sm text-gray-400">Hubungkan klien VPN ke <code class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">wss://domain-anda.up.railway.app/aerotunnel</code></p>
-    <p class="text-sm text-gray-500 mt-2">Path: <code class="text-gray-400">/aerotunnel</code>, Port: 443, TLS aktif</p>
   </div>
 </div>
 

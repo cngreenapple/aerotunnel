@@ -148,6 +148,7 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
 
         if (protocol === horse) protocolHeader = this.readHorseHeader(chunk);
         else if (protocol === flash) protocolHeader = this.readFlashHeader(chunk);
+        else if (protocol === "aead") throw new Error("VMess AEAD not supported - use VLESS instead");
         else protocolHeader = this.readSsHeader(chunk);
 
         if (protocolHeader.hasError) throw new Error(protocolHeader.message);
@@ -190,8 +191,11 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
       const d = buffer.slice(56, 60);
       if (d[0] === 0x0d && d[1] === 0x0a && [0x01,0x03,0x7f].includes(d[2]) && [0x01,0x03,0x04].includes(d[3])) return horse;
     }
-    const h = buffer.slice(1, 17).toString('hex');
-    if (h.match(/^[0-9a-f]{8}[0-9a-f]{4}4[0-9a-f]{3}[89ab][0-9a-f]{3}[0-9a-f]{12}$/i)) return flash;
+    if (buffer[0] === 1) {
+      const h = buffer.slice(1, 17).toString('hex');
+      if (h.match(/^[0-9a-f]{8}[0-9a-f]{4}4[0-9a-f]{3}[89ab][0-9a-f]{3}[0-9a-f]{12}$/i)) return flash;
+      return "aead";
+    }
     return "ss";
   }
 

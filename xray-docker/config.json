@@ -1,10 +1,8 @@
 {
-  "log": {
-    "loglevel": "warning"
-  },
+  "log": { "loglevel": "warning" },
   "inbounds": [
     {
-      "port": 443,
+      "port": 3001,
       "protocol": "vless",
       "tag": "vless-ws",
       "settings": {
@@ -15,23 +13,11 @@
       },
       "streamSettings": {
         "network": "ws",
-        "wsSettings": {
-          "path": "/aerotunnel"
-        },
-        "security": "tls",
-        "tlsSettings": {
-          "serverName": "replace-with-your-domain.com",
-          "certificates": [
-            {
-              "certificateFile": "/etc/ssl/cert.pem",
-              "keyFile": "/etc/ssl/key.pem"
-            }
-          ]
-        }
+        "wsSettings": { "path": "/aerotunnel" }
       }
     },
     {
-      "port": 443,
+      "port": 3001,
       "protocol": "trojan",
       "tag": "trojan-ws",
       "settings": {
@@ -41,30 +27,12 @@
       },
       "streamSettings": {
         "network": "ws",
-        "wsSettings": {
-          "path": "/aerotunnel"
-        },
-        "security": "tls",
-        "tlsSettings": {
-          "serverName": "replace-with-your-domain.com",
-          "certificates": [
-            {
-              "certificateFile": "/etc/ssl/cert.pem",
-              "keyFile": "/etc/ssl/key.pem"
-            }
-          ]
-        }
+        "wsSettings": { "path": "/aerotunnel" }
       }
     }
   ],
   "outbounds": [
-    {
-      "protocol": "freedom",
-      "tag": "direct-out"
-    },
-    {
-      "protocol": "blackhole",
-      "tag": "block-out"
-    }
+    { "protocol": "freedom", "tag": "direct-out" },
+    { "protocol": "blackhole", "tag": "block-out" }
   ]
 }

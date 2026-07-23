@@ -10,6 +10,6 @@ RUN curl -L https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}
 
 COPY config.json /etc/xray/config.json
 
-EXPOSE 443
+EXPOSE 3001
 
 CMD ["xray", "-c", "/etc/xray/config.json"]

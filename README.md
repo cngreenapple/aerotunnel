@@ -1,16 +1,27 @@
 # 🚀 AEROTUNNEL
 
-Backend tunneling WebSocket ringan buat VLESS, Trojan & SSH. Jalan di platform serverless/PaaS (Railway, Fly.io, dll) tanpa root/kernel access.
+Tunnel backend WebSocket buat VLESS & Trojan, powered by **Xray-core**. Dashboard Web UI + Quick Generator. Deploy di Railway/Fly.io.
 
 ---
 
 ## ✨ Fitur
 
-* **Pure Node.js:** Tanpa core eksternal (Xray/v2ray).
-* **Protokol Ganda:** VLESS + Trojan dalam 1 port.
+* **Xray-core Engine:** Native performance, support VLESS + Trojan.
 * **Dashboard:** UI mac-style, monitor uptime & bandwidth real-time.
 * **Quick Generator:** 1-click generate & copy URI VLESS/Trojan.
 * **Auto-Port Binding:** Deteksi port dari cloud platform.
+
+---
+
+## 🏗 Arsitektur
+
+```
+Client VPN → :$PORT (Node.js) → /aerotunnel WS → Xray (internal :3001)
+            → / → Dashboard HTML
+            → /api/stats → Bandwidth API
+```
+
+Node.js jadi reverse proxy tipis + dashboard. Xray handle semua protocol logic.
 
 ---
 
@@ -26,12 +37,12 @@ Backend tunneling WebSocket ringan buat VLESS, Trojan & SSH. Jalan di platform s
 
 ## 📱 Konfigurasi Klien VPN
 
-### Opsi 1: Quick Generator (Dashboard)
+### Quick Generator (Dashboard)
 Buka dashboard, klik **Generate VLESS** / **Generate TROJAN**, copy.
 
-### Opsi 2: Manual
+### Manual
 
-**VLESS (WSS):**
+**VLESS (WS):**
 | Field | Value |
 |-------|-------|
 | Address | domain Railway |
@@ -42,7 +53,7 @@ Buka dashboard, klik **Generate VLESS** / **Generate TROJAN**, copy.
 | TLS | `tls` |
 | SNI | domain Railway |
 
-**Trojan (WSS):**
+**Trojan (WS):**
 | Field | Value |
 |-------|-------|
 | Address | domain Railway |
@@ -58,22 +69,7 @@ Buka dashboard, klik **Generate VLESS** / **Generate TROJAN**, copy.
 ## ⚠️ Catatan
 
 * **Data Volatil:** Bandwidth tracker in-memory — reset pas container restart.
-* **UDP Limit:** UDP over TCP native. Enable TUN Mode di client VPN.
 * **Rotasi IP:** IP pool dinamis Railway/GCP.
-
----
-
-## � Xray-core (Docker)
-
-Deploy Xray langsung — performa native, tanpa JS wrapper.
-
-```bash
-cd xray-docker
-docker build -t aerotunnel-xray .
-docker run -d -p 443:443 aerotunnel-xray
-```
-
-Edit `xray-docker/config.json` — ganti UUID, password, & domain sebelum build.
 
 ---
 

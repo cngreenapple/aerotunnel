@@ -2,7 +2,8 @@ const WebSocket = require('ws');
 const http = require('http');
 const url = require('url');
 
-const XRAY_WS = 'ws://127.0.0.1:3001/aerotunnel';
+const XRAY_HOST = '127.0.0.1:3001';
+const XRAY_PATHS = ['/vless', '/trojan'];
 
 class GatewayServer {
   constructor() {
@@ -97,7 +98,7 @@ function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math
 async function ref(){try{const r=await fetch('/api/stats'),d=await r.json();document.getElementById('up').innerText=fmtT(d.uptime);document.getElementById('dl').innerText=fmt(d.tx);document.getElementById('ul').innerText=fmt(d.rx)}catch(e){}}
 ref();setInterval(ref,1000);
 function uuid(){return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16)})}
-function gen(t){const h=window.location.hostname,u=uuid(),uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-VLESS':'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-TROJAN';document.getElementById('out').value=uri;document.getElementById('cpy').innerText='Copy'}
+function gen(t){const h=window.location.hostname,u=uuid(),p=t==='vless'?'%2Fvless':'%2Ftrojan',uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&type=ws&host='+h+'&path='+p+'#AEROTUNNEL-VLESS':'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&type=ws&host='+h+'&path='+p+'#AEROTUNNEL-TROJAN';document.getElementById('out').value=uri;document.getElementById('cpy').innerText='Copy'}
 function cp(){const t=document.getElementById('out');if(!t.value)return;t.select();navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById('cpy');b.innerText='Copied!';setTimeout(()=>{if(b.innerText==='Copied!')b.innerText='Copy'},2000)}).catch(e=>console.error(e))}
 </script>
 </body>
@@ -110,9 +111,10 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
 
   handleWebSocket(ws, req) {
     const path = url.parse(req.url).pathname;
-    if (path !== '/aerotunnel') { ws.close(); return; }
+    const xrayPath = XRAY_PATHS.find(p => path === p);
+    if (!xrayPath) { ws.close(); return; }
 
-    const xws = new WebSocket(XRAY_WS);
+    const xws = new WebSocket(`ws://${XRAY_HOST}${xrayPath}`);
     xws.on('open', () => {
       ws.on('message', d => { this.stats.rx += Buffer.from(d).length; xws.send(d); });
       xws.on('message', d => { this.stats.tx += Buffer.from(d).length; ws.send(d); });

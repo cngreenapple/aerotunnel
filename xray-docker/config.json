@@ -13,7 +13,7 @@
       },
       "streamSettings": {
         "network": "ws",
-        "wsSettings": { "path": "/aerotunnel" }
+        "wsSettings": { "path": "/vless" }
       }
     },
     {
@@ -27,7 +27,7 @@
       },
       "streamSettings": {
         "network": "ws",
-        "wsSettings": { "path": "/aerotunnel" }
+        "wsSettings": { "path": "/trojan" }
       }
     }
   ],

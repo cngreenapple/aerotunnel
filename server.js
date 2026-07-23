@@ -105,7 +105,7 @@ function fmt(b){if(b===0)return'0 B';const k=1024,s=['B','KB','MB','GB','TB'];co
 function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),s2=s%60;return(d>0?d+'d ':'')+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0')}
 async function ref(){try{const r=await fetch('/api/stats'),d=await r.json();document.getElementById('up').innerText=fmtT(d.uptime);document.getElementById('dl').innerText=fmt(d.tx);document.getElementById('ul').innerText=fmt(d.rx)}catch(e){}}
 ref();setInterval(ref,1000);
-function uuid(){return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16)})}
+function uuid(){return'1d69c4a1-f704-4963-a44f-acfa2e9c5d78'}
 function gen(t){const h=window.location.hostname,u=uuid(),uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-VLESS':t==='trojan'?'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-TROJAN':'vmess://'+btoa(JSON.stringify({v:'2',ps:'AEROTUNNEL-VMESS',add:h,port:'443',id:u,aid:'0',scy:'auto',net:'ws',type:'none',host:h,path:'/aerotunnel',tls:'tls',sni:h}));document.getElementById('out').value=uri;document.getElementById('cpy').innerText='Copy'}
 function cp(){const t=document.getElementById('out');if(!t.value)return;t.select();navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById('cpy');b.innerText='Copied!';setTimeout(()=>{if(b.innerText==='Copied!')b.innerText='Copy'},2000)}).catch(e=>console.error(e))}
 </script>

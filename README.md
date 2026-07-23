@@ -63,18 +63,17 @@ Buka dashboard, klik **Generate VLESS** / **Generate TROJAN**, copy.
 
 ---
 
-## 🔀 Alternatif
+## � Xray-core (Docker)
 
-### Go rewrite — `golang-tunnel/`
+Deploy Xray langsung — performa native, tanpa JS wrapper.
+
 ```bash
-cd golang-tunnel && go run main.go
+cd xray-docker
+docker build -t aerotunnel-xray .
+docker run -d -p 443:443 aerotunnel-xray
 ```
 
-### sing-box — `sing-box/`
-Config-based, support VLESS/Trojan/Shadowsocks native.
-
-### Xray-core — `xray-docker/`
-Docker, performa native.
+Edit `xray-docker/config.json` — ganti UUID, password, & domain sebelum build.
 
 ---
 

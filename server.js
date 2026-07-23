@@ -211,18 +211,6 @@ const server = http.createServer(async (req, res) => {
     </div>
   </div>
 
-  <!-- Memory -->
-  <div class="bg-[#11131f] border border-gray-800 rounded-xl p-6 mb-8 glow-green">
-    <div class="flex items-center justify-between mb-4">
-      <p class="text-xs text-gray-500 uppercase tracking-wider">Memory Usage</p>
-      <p class="text-xs text-gray-600" id="memtotal">-</p>
-    </div>
-    <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
-      <div class="bg-gradient-to-r from-blue-500 to-blue-400 h-full rounded-full transition-all duration-500" id="membar" style="width:0%"></div>
-    </div>
-    <p class="text-xs text-gray-500 mt-2" id="memdetail">-</p>
-  </div>
-
   <!-- Generator -->
   <div class="bg-[#11131f] border border-gray-800 rounded-xl p-6 mb-8">
     <p class="text-xs text-gray-500 uppercase tracking-wider mb-4">Quick Config Generator</p>
@@ -239,8 +227,13 @@ const server = http.createServer(async (req, res) => {
   <!-- Proxy Info -->
   <div class="bg-[#11131f] border border-gray-800 rounded-xl p-6">
     <p class="text-xs text-gray-500 uppercase tracking-wider mb-4">Proxy Routing — Cara Penggunaan</p>
-    <p class="text-sm text-gray-400 mb-4">Hubungkan klien VPN Anda ke <code class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">wss://domain-anda.up.railway.app/KODE_NEGARA</code></p>
+    <p class="text-sm text-gray-400 mb-4">Hubungkan klien VPN Anda ke <code class="text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">wss://domain-anda.up.railway.app/PATH</code></p>
     <div class="space-y-3 text-sm">
+      <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
+        <span class="text-blue-400 font-semibold">/aerotunnel</span>
+        <span class="text-gray-500 mx-2">→</span>
+        <span class="text-gray-400">Koneksi langsung (tanpa proxy) — untuk server Railway sendiri</span>
+      </div>
       <div class="bg-[#0a0b10] border border-gray-800 rounded-lg p-3">
         <span class="text-blue-400 font-semibold">/ID</span>
         <span class="text-gray-500 mx-2">→</span>
@@ -286,7 +279,7 @@ const server = http.createServer(async (req, res) => {
 <script>
 function fmt(b){if(b===0)return'0 B';const k=1024,s=['B','KB','MB','GB','TB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]}
 function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),s2=s%60;return(d>0?d+'d ':'')+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0')}
-async function ref(){try{const r=await fetch('/api/stats'),d=await r.json();document.getElementById('uptime').innerText=fmtT(d.uptime);document.getElementById('tx').innerText=fmt(d.tx);document.getElementById('rx').innerText=fmt(d.rx);const pct=Math.round(d.mem.heap/d.mem.total*100);document.getElementById('membar').style.width=pct+'%';document.getElementById('memdetail').innerText=fmt(d.mem.heap)+' / '+fmt(d.mem.total);document.getElementById('memtotal').innerText='Heap '+fmt(d.mem.total);document.getElementById('mem').innerText=pct+'%'}catch(e){}}
+async function ref(){try{const r=await fetch('/api/stats'),d=await r.json();document.getElementById('uptime').innerText=fmtT(d.uptime);document.getElementById('tx').innerText=fmt(d.tx);document.getElementById('rx').innerText=fmt(d.rx);const pct=Math.round(d.mem.heap/d.mem.total*100);document.getElementById('mem').innerText=pct+'%'}catch(e){}}
 ref();setInterval(ref,2000);
 function gen(t){const h=window.location.hostname,u='3b01a777-55e7-49f6-8637-d94ee69607c6',uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&type=ws&host='+h+'&path=%2FID#AEROTUNNEL-VLESS':'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&type=ws&host='+h+'&path=%2FID#AEROTUNNEL-TROJAN';document.getElementById('out').value=uri;document.getElementById('cpy').innerText='Copy'}
 function cp(){const t=document.getElementById('out');if(!t.value)return;t.select();navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById('cpy');b.innerText='Copied!';setTimeout(()=>{if(b.innerText==='Copied!')b.innerText='Copy'},2000)}).catch(e=>console.error(e))}

@@ -1,27 +1,26 @@
 # 🚀 AEROTUNNEL
 
-Tunnel backend WebSocket buat VLESS & Trojan, powered by **Xray-core**. Dashboard Web UI + Quick Generator. Deploy di Railway/Fly.io.
+Tunnel backend WebSocket buat VLESS & Trojan — **pure Node.js**, no Xray needed. Dashboard Web UI + Quick Generator. Deploy di Railway/Fly.io.
 
 ---
 
 ## ✨ Fitur
 
-* **Xray-core Engine:** Native performance, support VLESS + Trojan.
+* **Pure Node.js:** Tanpa Xray/v2ray atau dependensi OS.
+* **Protocol Sniffer:** Auto-detect VLESS & Trojan dari data WebSocket.
+* **Direct Routing:** Forward TCP/UDP langsung ke internet.
 * **Dashboard:** UI mac-style, monitor uptime & bandwidth real-time.
 * **Quick Generator:** 1-click generate & copy URI VLESS/Trojan.
-* **Auto-Port Binding:** Deteksi port dari cloud platform.
 
 ---
 
 ## 🏗 Arsitektur
 
 ```
-Client VPN → :$PORT (Node.js) → /aerotunnel WS → Xray (internal :3001)
+Client VPN → :$PORT (Node.js) → sniff protocol → TCP/UDP langsung ke tujuan
             → / → Dashboard HTML
             → /api/stats → Bandwidth API
 ```
-
-Node.js jadi reverse proxy tipis + dashboard. Xray handle semua protocol logic.
 
 ---
 
@@ -48,6 +47,19 @@ Buka dashboard, klik **Generate VLESS** / **Generate TROJAN**, copy.
 | Address | domain Railway |
 | Port | 443 |
 | UUID | uuid-v4 bebas |
+| Path | `/vless` |
+| TLS | tls |
+| SNI | domain Railway |
+
+**Trojan (WS):**
+| Field | Value |
+|-------|-------|
+| Address | domain Railway |
+| Port | 443 |
+| Password | bebas |
+| Path | `/trojan` |
+| TLS | tls |
+| SNI | domain Railway |
 | Network | `ws` |
 | Path | `/aerotunnel` |
 | TLS | `tls` |

@@ -3,11 +3,35 @@ const net = require('net');
 const dgram = require('dgram');
 const http = require('http');
 const url = require('url');
+const crypto = require('crypto');
 
 const horse = Buffer.from("dHJvamFu", 'base64').toString(); // trojan
 const flash = Buffer.from("dm1lc3M=", 'base64').toString(); // vmess/vless
 
 const WS_READY_STATE_OPEN = 1;
+const VMESS_UUID = '1d69c4a1-f704-4963-a44f-acfa2e9c5d78';
+
+function dbl(block) {
+  const r = Buffer.alloc(16); let c = 0;
+  for (let i = 15; i >= 0; i--) { const v = block[i]; r[i] = ((v << 1) & 0xff) | c; c = (v & 0x80) ? 1 : 0; }
+  if (block[0] & 0x80) r[15] ^= 0x87;
+  return r;
+}
+
+function aes128Cmac(key, msg) {
+  const e = crypto.createCipheriv('aes-128-ecb', key, null); e.setAutoPadding(false);
+  const L = e.update(Buffer.alloc(16, 0));
+  const K1 = dbl(L), K2 = dbl(K1);
+  const n = Math.max(1, Math.ceil(msg.length / 16));
+  let lb;
+  if (msg.length > 0 && msg.length % 16 === 0) { lb = Buffer.from(msg.slice((n-1)*16)); for (let i=0;i<16;i++) lb[i] ^= K1[i]; }
+  else { lb = Buffer.alloc(16,0); if(msg.length>0) msg.copy(lb,0,(n-1)*16); lb[msg.length%16]=0x80; for(let i=0;i<16;i++) lb[i]^=K2[i]; }
+  const cbc = crypto.createCipheriv('aes-128-cbc', key, Buffer.alloc(16,0)); cbc.setAutoPadding(false);
+  let r;
+  if (n===1) r = cbc.update(lb);
+  else { for(let i=0;i<n-1;i++) cbc.update(msg.slice(i*16,(i+1)*16)); r = cbc.update(lb); }
+  return r.slice(-16);
+}
 
 class GatewayServer {
   constructor() {
@@ -148,7 +172,7 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
 
         if (protocol === horse) protocolHeader = this.readHorseHeader(chunk);
         else if (protocol === flash) protocolHeader = this.readFlashHeader(chunk);
-        else if (protocol === "aead") throw new Error("VMess AEAD not supported - use VLESS instead");
+        else if (protocol === "aead") protocolHeader = this.readAeadHeader(chunk);
         else protocolHeader = this.readSsHeader(chunk);
 
         if (protocolHeader.hasError) throw new Error(protocolHeader.message);
@@ -390,6 +414,48 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
       version: null,
       isUDP: isUDP,
     };
+  }
+
+  readAeadHeader(buf) {
+    const uuidKey = Buffer.from(VMESS_UUID.replace(/-/g,''), 'hex');
+    const uuidMd5 = crypto.createHash('md5').update(uuidKey).digest();
+    const kdfResult = crypto.createHash('md5').update(uuidMd5).update(Buffer.from('c48619fe-8f02-49e0-b9e9-edf763e17e21')).digest();
+    const fullKdf = Buffer.concat([uuidMd5, kdfResult]);
+    const key = fullKdf.slice(0, 16);
+    const aKey = fullKdf.slice(16, 32);
+
+    const nonce = buf.slice(1, 17);
+    const enc = buf.slice(17, 33);
+    const ad = buf.slice(33, 49);
+
+    const expectedCmac = aes128Cmac(aKey, Buffer.concat([nonce, enc]));
+    if (!expectedCmac.equals(ad)) return { hasError: true, message: "VMess AEAD auth failed - wrong UUID" };
+
+    const c = crypto.createDecipheriv('aes-128-ctr', key, nonce);
+    c.setAutoPadding(false);
+    const dec = c.update(enc);
+
+    const cmd = dec[0];
+    let isUDP = false;
+    if (cmd === 2) isUDP = true;
+    else if (cmd !== 1) return { hasError: true, message: `VMess cmd ${cmd} unsupported` };
+
+    const opt = dec[1];
+    const sec = dec[4];
+    const pi = 6 + opt;
+    const pr = dec.readUInt16BE(pi);
+    let ai = pi + 2;
+    const at = dec[ai];
+    let al = 0, avi = ai + 1, av = "";
+    if (at === 1) { al = 4; av = Array.from(dec.slice(avi, avi+al)).join("."); }
+    else if (at === 2) { al = dec[avi]; avi += 1; av = dec.slice(avi, avi+al).toString(); }
+    else if (at === 3) { al = 16; const ip = []; for(let i=0;i<8;i++) ip.push(dec.readUInt16BE(avi+i*2).toString(16)); av = ip.join(":"); }
+    else return { hasError: true, message: `VMess invalid addr type ${at}` };
+    if (!av) return { hasError: true, message: "VMess addr empty" };
+
+    const rawIdx = avi + al;
+    const rawData = buf.slice(49 + rawIdx);
+    return { hasError: false, addressRemote: av, portRemote: pr, rawDataIndex: 0, rawClientData: rawData, version: null, isUDP };
   }
 
   readSsHeader(buf) {

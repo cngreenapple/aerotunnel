@@ -78,7 +78,8 @@ function toBuffer(uuidStr) {
 }
 
 function kdf(key, paths) {
-  let h = crypto.createHmac('sha256', Buffer.from("VMess AEAD KDF")).update(key).digest();
+  let h = crypto.createHash('sha256').update(key).digest();
+  h = crypto.createHmac('sha256', Buffer.from("VMess AEAD KDF")).update(h).digest();
   for (const p of paths) h = crypto.createHmac('sha256', p).update(h).digest();
   return h;
 }

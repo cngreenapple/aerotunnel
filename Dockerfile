@@ -1,39 +1,12 @@
-FROM ubuntu:22.04
+FROM node:20-bookworm-slim
 
-ENV DEBIAN_FRONTEND=noninteractive
+ENV NODE_ENV=production
 ENV PORT=8080
-ENV PORT_SSH=2222
-ENV SSH_USER=j1btnl
-ENV SSH_PASSWORD=j1btnl
-
-RUN apt-get update && apt-get install -y \
-    openssh-server \
-    stunnel4 \
-    openssl \
-    sudo \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Node.js 20
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir /var/run/sshd /var/run/stunnel
-
-# Sertifikat Stunnel
-RUN openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 \
-    -subj "/C=ID/ST=Jakarta/L=Jakarta/O=RailwaySSH/CN=localhost" \
-    -keyout /etc/stunnel/stunnel.pem -out /etc/stunnel/stunnel.pem
 
 WORKDIR /app
 COPY package.json server.js /app/
 RUN npm install --production
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 EXPOSE 8080
-EXPOSE 2222
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "server.js"]

@@ -299,36 +299,6 @@ class GatewayServer {
                 </div>
               </div>
 
-              <div class="generator-section" style="margin-top:16px">
-                <div class="section-label">SSH Tunnel</div>
-                <div style="font-size:.8rem;color:var(--text-muted);line-height:1.6">
-                  <div style="display:flex;justify-content:space-between;padding:6px 0">
-                    <span>Host</span>
-                    <span id="ssh-host" style="color:var(--text-main);font-family:monospace">—</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border-color)">
-                    <span>Port (Stunnel)</span>
-                    <span id="ssh-port-stunnel" style="color:var(--text-main);font-family:monospace">—</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border-color)">
-                    <span>WS Path</span>
-                    <span style="color:var(--accent-blue);font-family:monospace">/ssh</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border-color)">
-                    <span>User</span>
-                    <span style="color:var(--text-main);font-family:monospace">user</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border-color)">
-                    <span>Pass</span>
-                    <span style="color:var(--text-main);font-family:monospace">pass</span>
-                  </div>
-                  <div style="margin-top:8px;padding:8px;background:#050505;border-radius:6px;font-size:.75rem;color:var(--text-muted)">
-                    <b>Stunnel:</b> <code style="color:var(--accent-blue)">ssh -o ProxyCommand='openssl s_client -connect HOST:PORT_SSH -quiet' user@localhost</code><br><br>
-                    <b>WebSocket:</b> <code style="color:var(--accent-blue)">websocat ws://HOST/ssh -- ssh user@localhost</code><br><br>
-                    Set env <code style="color:var(--accent-blue)">SSH_USER</code>, <code style="color:var(--accent-blue)">SSH_PASSWORD</code>, <code style="color:var(--accent-blue)">PORT_SSH</code>.
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -369,12 +339,6 @@ class GatewayServer {
 
             refreshDashboardStats();
             setInterval(refreshDashboardStats, 1000);
-
-            // --- SSH info ---
-            const sshHost = document.getElementById('ssh-host');
-            const sshPortStunnel = document.getElementById('ssh-port-stunnel');
-            if (sshHost) sshHost.textContent = window.location.hostname;
-            if (sshPortStunnel) sshPortStunnel.textContent = window.location.port || '443';
 
             // --- Config Generator Logic ---
             function generateUUID() {
@@ -437,11 +401,6 @@ class GatewayServer {
       const parsedUrl = url.parse(request.url, true);
       const path = parsedUrl.pathname;
 
-      if (path === '/ssh') {
-        await this.sshWebSocketHandler(ws);
-        return;
-      }
-
       if (path === '/vless-mediafairy' || path === '/trojan-mediafairy' || path === '/aerotunnel') {
         await this.websocketHandler(ws);
         return;
@@ -450,39 +409,6 @@ class GatewayServer {
       ws.close(1000, "Invalid WebSocket path");
     } catch (err) {
       ws.close(1011, 'Internal server error');
-    }
-  }
-
-  // ==================== SSH WEBSOCKET HANDLER ====================
-
-  async sshWebSocketHandler(ws) {
-    const sshTarget = { host: '127.0.0.1', port: 22 };
-    let tcpSocket = null;
-    let tcpClosed = false;
-    let wsClosed = false;
-
-    const closeBoth = () => {
-      if (!wsClosed) { wsClosed = true; try { ws.close(); } catch (_) {} }
-      if (!tcpClosed) { tcpClosed = true; try { tcpSocket.end(); } catch (_) {} }
-    };
-
-    try {
-      tcpSocket = net.createConnection(sshTarget, () => {
-        ws.on('message', (data) => {
-          if (!tcpClosed) tcpSocket.write(Buffer.from(data));
-        });
-      });
-
-      tcpSocket.on('data', (data) => {
-        if (!wsClosed && ws.readyState === WebSocket.OPEN) ws.send(data);
-      });
-
-      tcpSocket.on('close', closeBoth);
-      tcpSocket.on('error', closeBoth);
-      ws.on('close', closeBoth);
-      ws.on('error', closeBoth);
-    } catch (err) {
-      closeBoth();
     }
   }
 

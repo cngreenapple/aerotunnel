@@ -4,8 +4,8 @@ const dgram = require('dgram');
 const http = require('http');
 const url = require('url');
 
-const horse = Buffer.from("dHJvamFu", 'base64').toString();
-const flash = Buffer.from("dm1lc3M=", 'base64').toString();
+const horse = Buffer.from("dHJvamFu", 'base64').toString(); // trojan
+const flash = Buffer.from("dm1lc3M=", 'base64').toString(); // vmess/vless
 
 const WS_READY_STATE_OPEN = 1;
 
@@ -90,6 +90,7 @@ input[type=text]:focus{border-color:#333;color:var(--text)}
 <div class="btns">
 <button class="bv" onclick="gen('vless')">VLESS</button>
 <button class="bt" onclick="gen('trojan')">TROJAN</button>
+<button class="bv" onclick="gen('vmess')" style="border-color:var(--green);color:var(--green)">VMESS</button>
 </div>
 <div class="row">
 <input type="text" id="out" readonly placeholder="Select a protocol..." />
@@ -105,7 +106,7 @@ function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math
 async function ref(){try{const r=await fetch('/api/stats'),d=await r.json();document.getElementById('up').innerText=fmtT(d.uptime);document.getElementById('dl').innerText=fmt(d.tx);document.getElementById('ul').innerText=fmt(d.rx)}catch(e){}}
 ref();setInterval(ref,1000);
 function uuid(){return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16)})}
-function gen(t){const h=window.location.hostname,u=uuid(),uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-VLESS':'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-TROJAN';document.getElementById('out').value=uri;document.getElementById('cpy').innerText='Copy'}
+function gen(t){const h=window.location.hostname,u=uuid(),uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-VLESS':t==='trojan'?'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&type=ws&host='+h+'&path=%2Faerotunnel#AEROTUNNEL-TROJAN':'vmess://'+btoa(JSON.stringify({v:'2',ps:'AEROTUNNEL-VMESS',add:h,port:'443',id:u,aid:'0',scy:'auto',net:'ws',type:'none',host:h,path:'/aerotunnel',tls:'tls',sni:h}));document.getElementById('out').value=uri;document.getElementById('cpy').innerText='Copy'}
 function cp(){const t=document.getElementById('out');if(!t.value)return;t.select();navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById('cpy');b.innerText='Copied!';setTimeout(()=>{if(b.innerText==='Copied!')b.innerText='Copy'},2000)}).catch(e=>console.error(e))}
 </script>
 </body>
@@ -145,11 +146,9 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
         const protocol = this.protocolSniffer(chunk);
         let protocolHeader;
 
-        if (protocol === horse) {
-          protocolHeader = this.readHorseHeader(chunk);
-        } else {
-          protocolHeader = this.readFlashHeader(chunk);
-        }
+        if (protocol === horse) protocolHeader = this.readHorseHeader(chunk);
+        else if (protocol === flash) protocolHeader = this.readFlashHeader(chunk);
+        else protocolHeader = this.readSsHeader(chunk);
 
         if (protocolHeader.hasError) throw new Error(protocolHeader.message);
 
@@ -188,16 +187,12 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
 
   protocolSniffer(buffer) {
     if (buffer.length >= 62) {
-      const horseDelimiter = buffer.slice(56, 60);
-      if (horseDelimiter[0] === 0x0d && horseDelimiter[1] === 0x0a) {
-        if ([0x01, 0x03, 0x7f].includes(horseDelimiter[2])) {
-          if ([0x01, 0x03, 0x04].includes(horseDelimiter[3])) {
-            return horse;
-          }
-        }
-      }
+      const d = buffer.slice(56, 60);
+      if (d[0] === 0x0d && d[1] === 0x0a && [0x01,0x03,0x7f].includes(d[2]) && [0x01,0x03,0x04].includes(d[3])) return horse;
     }
-    return flash;
+    const h = buffer.slice(1, 17).toString('hex');
+    if (h.match(/^[0-9a-f]{8}[0-9a-f]{4}4[0-9a-f]{3}[89ab][0-9a-f]{3}[0-9a-f]{12}$/i)) return flash;
+    return "ss";
   }
 
   async handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawClientData, webSocket, responseHeader) {
@@ -391,6 +386,18 @@ function cp(){const t=document.getElementById('out');if(!t.value)return;t.select
       version: null,
       isUDP: isUDP,
     };
+  }
+
+  readSsHeader(buf) {
+    const at = buf[0]; let al = 0, avi = 1, av = "";
+    if (at === 1) { al = 4; av = Array.from(buf.slice(avi, avi+al)).join("."); }
+    else if (at === 3) { al = buf[avi]; avi += 1; av = buf.slice(avi, avi+al).toString(); }
+    else if (at === 4) { al = 16; const ip = []; for(let i=0;i<8;i++) ip.push(buf.readUInt16BE(avi+i*2).toString(16)); av = ip.join(":"); }
+    else return { hasError: true, message: `Invalid addr type: ${at}` };
+    if (!av) return { hasError: true, message: "Address empty" };
+    const pi = avi + al;
+    const pr = buf.readUInt16BE(pi);
+    return { hasError: false, addressRemote: av, portRemote: pr, rawDataIndex: pi+2, rawClientData: buf.slice(pi+2), version: null, isUDP: pr == 53 };
   }
 
   remoteSocketToWS(remoteSocket, webSocket, responseHeader) {

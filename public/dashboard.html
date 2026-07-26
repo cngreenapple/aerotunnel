@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AeroTunnel - Gateway</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg-p:#0a0b10;--bg-s:#11131f;--bd:#1f2937;--tx-p:#fff;--tx-s:#9ca3af;--glow:rgba(59,130,246,.15)}
+.light{--bg-p:#f1f5f9;--bg-s:#fff;--bd:#e2e8f0;--tx-p:#0f172a;--tx-s:#64748b;--glow:rgba(59,130,246,.2)}
+*{font-family:'Inter',sans-serif}
+.glow{box-shadow:0 0 20px var(--glow)}
+.card-hover{transition:all .2s}
+.card-hover:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.3)}
+.tgl-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;color:var(--tx-s);transition:all .2s;display:flex;align-items:center;justify-content:center}
+.tgl-btn:hover{background:var(--bg-s)}
+</style>
+</head>
+<body class="bg-[var(--bg-p)] text-[var(--tx-p)] min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+
+<!-- Login Overlay -->
+<div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-p)] transition-opacity duration-300">
+  <div class="w-full max-w-sm p-4">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--tx-p)]">Aero<span class="text-blue-400">Tunnel</span></h1>
+      <p class="text-sm text-[var(--tx-s)] mt-2">Gateway Authentication</p>
+    </div>
+    <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-2xl p-6 glow">
+      <form id="loginForm" onsubmit="doLogin(event)" class="space-y-4">
+        <div>
+          <label class="text-[11px] text-[var(--tx-s)] uppercase tracking-wider block mb-1.5">Username</label>
+          <input id="user" type="text" class="w-full bg-[var(--bg-p)] border border-[var(--bd)] text-[var(--tx-p)] px-3.5 py-2.5 rounded-xl text-sm outline-none transition focus:border-blue-500/50" placeholder="Username">
+        </div>
+        <div>
+          <label class="text-[11px] text-[var(--tx-s)] uppercase tracking-wider block mb-1.5">Password</label>
+          <input id="pass" type="password" class="w-full bg-[var(--bg-p)] border border-[var(--bd)] text-[var(--tx-p)] px-3.5 py-2.5 rounded-xl text-sm outline-none transition focus:border-blue-500/50" placeholder="Password">
+        </div>
+        <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-sm transition">Sign In</button>
+        <p id="loginErr" class="text-red-400 text-xs text-center hidden">Invalid credentials</p>
+      </form>
+    </div>
+    <p class="text-center text-[10px] text-[var(--tx-s)] mt-6 opacity-50">AeroTunnel Gateway &mdash; 2026</p>
+  </div>
+</div>
+
+<!-- Dashboard Content -->
+<div id="dashboardContent" class="w-full max-w-md lg:max-w-5xl mx-auto hidden">
+  <div class="flex items-center justify-between mb-3 lg:mb-2">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight">Aero<span class="text-blue-400">Tunnel</span></h1>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleTheme()" class="tgl-btn" title="Toggle theme" id="themeBtn">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+      <div class="flex items-center gap-1.5 bg-[var(--bg-s)] border border-[var(--bd)] rounded-full px-3 py-1.5">
+        <div class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+        <span class="text-[10px] font-medium text-green-400 tracking-wide">RUNNING</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 mb-3 lg:mb-2">
+    <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover glow">
+      <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">Uptime</p>
+      <p class="text-base font-bold" id="uptime">00:00:00</p>
+    </div>
+    <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover">
+      <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">CPU</p>
+      <p class="text-base font-bold" id="cpu">0%</p>
+    </div>
+    <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover">
+      <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">RAM</p>
+      <p class="text-base font-bold" id="mem">0%</p>
+    </div>
+    <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover">
+      <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">Download</p>
+      <p class="text-sm font-bold text-green-400"><span id="tx">0 B</span></p>
+      <p class="text-[9px] text-[var(--tx-s)]"><span id="txd">0</span></p>
+    </div>
+    <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover">
+      <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">Upload</p>
+      <p class="text-sm font-bold text-blue-400"><span id="rx">0 B</span></p>
+      <p class="text-[9px] text-[var(--tx-s)]"><span id="rxd">0</span></p>
+    </div>
+  </div>
+
+  <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-3 lg:p-4">
+      <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-3">Config Generator</p>
+      <div class="flex gap-2 mb-3">
+        <button onclick="gen('vless')" class="flex-1 bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 py-2 rounded-lg text-xs font-semibold transition">VLESS</button>
+        <button onclick="gen('vmess')" class="flex-1 bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 py-2 rounded-lg text-xs font-semibold transition">VMESS</button>
+        <button onclick="gen('trojan')" class="flex-1 bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 py-2 rounded-lg text-xs font-semibold transition">TROJAN</button>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div>
+          <div class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-1">URI</div>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="out" readonly class="flex-1 bg-[var(--bg-p)] border border-[var(--bd)] text-[var(--tx-s)] px-3 py-2 rounded-lg text-xs font-mono outline-none focus:border-gray-600" placeholder="Select...">
+            <button onclick="cp('out')" id="cpy" class="bg-white text-black px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-200 transition whitespace-nowrap">Copy</button>
+          </div>
+          <div class="flex items-center justify-between mb-1">
+            <div class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider">Clash Yaml</div>
+            <div class="flex gap-1.5">
+              <button onclick="cpyYaml()" id="cpy2" class="bg-white/10 text-[var(--tx-p)] px-2.5 py-1 rounded text-xs font-medium hover:bg-white/20 transition">Copy</button>
+              <button onclick="dlYaml()" class="bg-blue-500/20 text-blue-400 px-2.5 py-1 rounded text-xs font-medium hover:bg-blue-500/30 transition">Download</button>
+              <button onclick="toggleYaml()" class="bg-gray-500/20 text-[var(--tx-s)] px-2.5 py-1 rounded text-xs font-medium hover:bg-gray-500/30 transition" id="yamlToggle">Expand</button>
+            </div>
+          </div>
+          <textarea id="out2" class="hidden"></textarea>
+          <pre id="yaml-preview" class="bg-[var(--bg-p)] border border-[var(--bd)] text-[var(--tx-s)] px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto leading-relaxed">Select a protocol...</pre>
+        </div>
+        <div id="qr-container" class="flex flex-col items-center justify-center bg-[var(--bg-p)] border border-[var(--bd)] rounded-xl p-3 hidden">
+          <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-2">QR Code</p>
+          <canvas id="qr" width="200" height="200"></canvas>
+          <p class="text-[9px] text-gray-600 mt-1">Scan with v2rayNG / Shadowrocket</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Auth
+function getCred(){return sessionStorage.getItem('aero_cred')}
+function setCred(u,p){sessionStorage.setItem('aero_cred',btoa(u+':'+p))}
+function clearCred(){sessionStorage.removeItem('aero_cred')}
+
+function showLogin(){document.getElementById('loginOverlay').classList.remove('hidden');document.getElementById('dashboardContent').classList.add('hidden')}
+function showDash(){document.getElementById('loginOverlay').classList.add('hidden');document.getElementById('dashboardContent').classList.remove('hidden')}
+
+async function checkAuth(){
+  const c=getCred();
+  if(c){showDash();ref()}else{showLogin()}
+}
+checkAuth();
+
+function doLogin(e){
+  e.preventDefault();
+  const u=document.getElementById('user').value.trim();
+  const p=document.getElementById('pass').value.trim();
+  // Check against hardcoded credentials
+  if(u==='aero'&&p==='aero'){setCred(u,p);showDash();ref()}else{document.getElementById('loginErr').classList.remove('hidden')}
+}
+
+function fmt(b){if(b===0)return'0 B';const k=1024,s=['B','KB','MB','GB','TB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]}
+function fmtSpd(b){if(b===0)return'0 b/s';const s=b<0?0:b*8;if(s<1000)return Math.round(s)+' b/s';if(s<1e6)return (s/1e3).toFixed(1)+' Kb/s';return(s/1e6).toFixed(2)+' Mb/s'}
+function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return(d>0?d+'d ':'')+h+'h '+m+'m'}
+async function ref(){try{const r=await fetch('/stats'),d=await r.json();document.getElementById('uptime').innerText=fmtT(d.uptime);document.getElementById('cpu').innerText=d.cpu+'%';document.getElementById('mem').innerText=d.mem+'%';document.getElementById('tx').innerText=fmt(d.tx);document.getElementById('rx').innerText=fmt(d.rx);document.getElementById('txd').innerText=fmtSpd(d.txd);document.getElementById('rxd').innerText=fmtSpd(d.rxd)}catch(e){}}
+ref();setInterval(ref,2000);
+
+// Theme toggle
+(function(){const t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.add('light');document.getElementById('themeBtn')?.querySelector('svg')?.style.setProperty('transform','rotate(180deg)')}})();
+function toggleTheme(){const r=document.documentElement;r.classList.toggle('light');localStorage.setItem('theme',r.classList.contains('light')?'light':'dark');const b=document.getElementById('themeBtn')?.querySelector('svg');if(b)b.style.transform=r.classList.contains('light')?'rotate(180deg)':'rotate(0)'}
+
+// YAML helpers
+let yamlExpanded = false;
+function toggleYaml(){
+  yamlExpanded = !yamlExpanded;
+  const p = document.getElementById('yaml-preview');
+  const t = document.getElementById('yamlToggle');
+  const ta = document.getElementById('out2');
+  if (yamlExpanded) {
+    p.innerText = ta.value;
+    p.className = 'bg-[var(--bg-p)] border border-[var(--bd)] text-[var(--tx-s)] px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto leading-relaxed';
+    t.innerText = 'Collapse';
+  } else {
+    p.innerText = ta.value.slice(0, 200) + '...';
+    p.className = 'bg-[var(--bg-p)] border border-[var(--bd)] text-[var(--tx-s)] px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto max-h-20 leading-relaxed';
+    t.innerText = 'Expand';
+  }
+}
+function cpyYaml(){const t=document.getElementById('out2');if(!t.value)return;navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById('cpy2');b.innerText='Copied!';setTimeout(()=>b.innerText='Copy',2000)})}
+function dlYaml(){const t=document.getElementById('out2');if(!t.value)return;const a=document.createElement('a');a.href='data:text/yaml;charset=utf-8,'+encodeURIComponent(t.value);a.download='clash.yaml';a.click()}
+
+const h=window.location.hostname,u='f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c';
+
+// QR via QRious
+function showQR(text){const c=document.getElementById('qr'),ctx=c.getContext('2d');const qc=document.getElementById('qr-container');if(!text){qc.classList.add('hidden');return}const q=new QRious({element:c,value:text,size:200,level:'M',background:'#0a0b10',foreground:'#ffffff'});qc.classList.remove('hidden')}
+
+function pr(p,nm,tp,k,v){return'  - name: "'+nm+'"\n    type: '+tp+'\n    server: '+h+'\n    port: 443\n    '+k+': '+v+'\n    udp: true\n    tls: true\n    servername: '+h+'\n    client-fingerprint: firefox\n    network: ws\n    ws-opts:\n      path: "'+p+'"\n      headers:\n        Host: '+h}
+function gen(t){const pp={vless:{p:'/vless-aero',ep:'%2Fvless-aero',nm:'AEROTUNNEL VLESS',tp:'vless',k:'uuid',v:u},vmess:{p:'/vmess-aero',ep:'%2Fvmess-aero',nm:'AEROTUNNEL VMESS',tp:'vmess',k:'uuid',v:u},trojan:{p:'/trojan-aero',ep:'%2Ftrojan-aero',nm:'AEROTUNNEL TROJAN',tp:'trojan',k:'password',v:u}};const c=pp[t];const uri=t==='vless'?'vless://'+u+'@'+h+':443?encryption=none&security=tls&sni='+h+'&fp=firefox&type=ws&host='+h+'&path='+c.ep+'#'+c.nm:t==='vmess'?'vmess://'+btoa(JSON.stringify({v:'2',ps:c.nm,add:h,port:'443',id:u,aid:'0',scy:'auto',net:'ws',type:'none',host:h,path:c.p,tls:'tls',sni:h,fp:'firefox'})):'trojan://'+u+'@'+h+':443?security=tls&sni='+h+'&fp=firefox&type=ws&host='+h+'&path='+c.ep+'#'+c.nm;const p1=pr(pp.vless.p,pp.vless.nm,pp.vless.tp,pp.vless.k,pp.vless.v);const p2=pr(pp.vmess.p,pp.vmess.nm,pp.vmess.tp,pp.vmess.k,pp.vmess.v);const p3=pr(pp.trojan.p,pp.trojan.nm,pp.trojan.tp,pp.trojan.k,pp.trojan.v);const clash='mixed-port: 7890\nallow-lan: true\nbind-address: "*"\nmode: rule\nlog-level: info\nipv6: true\n\nexternal-controller: 127.0.0.1:9090\n\ndns:\n  enable: true\n  ipv6: true\n  enhanced-mode: fake-ip\n  listen: 0.0.0.0:1053\n  nameserver:\n    - https://1.1.1.1/dns-query\n    - https://dns.google/dns-query\n\nproxies:\n'+p1+'\n'+p2+'\n'+p3+'\n\nproxy-groups:\n  - name: PROXY\n    type: select\n    proxies:\n      - AEROTUNNEL VLESS\n      - AEROTUNNEL VMESS\n      - AEROTUNNEL TROJAN\n      - DIRECT\n\nrules:\n  - GEOIP,LAN,DIRECT\n  - GEOIP,CN,DIRECT\n  - MATCH,PROXY';document.getElementById('out').value=uri;document.getElementById('out2').value=clash;document.getElementById('cpy').innerText='Copy';document.getElementById('cpy2').innerText='Copy';yamlExpanded=false;const p=document.getElementById('yaml-preview');p.innerText=clash.slice(0,200)+'...';p.className='bg-[var(--bg-p)] border border-[var(--bd)] text-[var(--tx-s)] px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto max-h-20 leading-relaxed';document.getElementById('yamlToggle').innerText='Expand';showQR(uri)}
+function cp(id){const t=document.getElementById(id);if(!t.value)return;t.select();navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById(id==='out'?'cpy':'cpy2');b.innerText='Copied!';setTimeout(()=>{if(b.innerText==='Copied!')b.innerText='Copy'},2000)}).catch(e=>console.error(e))}
+</script>
+</body>
+</html>

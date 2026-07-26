@@ -1,6 +1,6 @@
 # 🚀 AeroTunnel
 
-VPN tunnel gateway — **Xray-core** + **Node.js** proxy. Deploy on Railway.
+VPN tunnel gateway — **Xray-core** + **Node.js** proxy. Deploy on Railway or self-host via Docker.
 
 ## Architecture
 
@@ -32,10 +32,36 @@ Client → Railway:8080 → Node.js WSS → Xray (VLESS/VMess/Trojan WS) → Int
 
 ## Deployment
 
+### Railway
+
 1. Fork repo to GitHub
 2. Create Railway project → Deploy from GitHub
 3. Set region to **Singapore**
 4. Open generated domain → login → dashboard
+
+### Docker (self-hosted)
+
+Build & run lokal:
+
+```bash
+docker build -t aerotunnel .
+docker run -d -p 8080:8080 --name aerotunnel aerotunnel
+```
+
+Akses `http://localhost:8080`, login `aero:aero`.
+
+### Docker Hub
+
+Image siap pakai: [`cnacna/aerotunnel`](https://hub.docker.com/r/cnacna/aerotunnel)
+
+```bash
+docker pull cnacna/aerotunnel:latest
+docker run -d -p 8080:8080 --name aerotunnel cnacna/aerotunnel:latest
+```
+
+### GitHub Actions (CI/CD)
+
+Tiap push ke `main` otomatis build & push ke Docker Hub via [workflow](.github/workflows/docker-build.yml).
 
 ## Dashboard
 

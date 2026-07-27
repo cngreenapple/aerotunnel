@@ -74,7 +74,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 // ==================== WEBSOCKET SERVER (proxy to Xray) ====================
-const wss = new WebSocket.Server({ server, perMessageDeflate: false });
+const wss = new WebSocket.Server({ server, perMessageDeflate: false, maxPayload: 1024 * 256 });
 wss.on('connection', (ws, req) => {
   const path = url.parse(req.url).pathname;
   const port = WS_PATHS[path];
@@ -82,12 +82,18 @@ wss.on('connection', (ws, req) => {
 
   const xws = new WebSocket(`ws://127.0.0.1:${port}${path}`, { perMessageDeflate: false });
   xws.on('open', () => {
-    ws.on('message', (d) => { stats.rx += Buffer.from(d).length; xws.send(d); });
-    xws.on('message', (d) => { stats.tx += Buffer.from(d).length; ws.send(d); });
+    ws.on('message', (d) => {
+      stats.rx += Buffer.from(d).length;
+      if (xws.readyState === WebSocket.OPEN) xws.send(d);
+    });
+    xws.on('message', (d) => {
+      stats.tx += Buffer.from(d).length;
+      if (ws.readyState === WebSocket.OPEN) ws.send(d);
+    });
     ws.on('close', () => xws.close());
     xws.on('close', () => ws.close());
-    ws.on('error', (e) => console.error('ws error:', e.message));
-    xws.on('error', (e) => console.error('xws error:', e.message));
+    ws.on('error', () => {});
+    xws.on('error', () => {});
   });
   xws.on('error', () => ws.close(1011, 'Xray unavailable'));
 });

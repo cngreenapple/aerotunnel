@@ -1,18 +1,23 @@
 :8080 {
     root * /app/public
-    encode gzip
 
     # Healthcheck
     handle /health {
         respond "OK" 200
     }
 
-    # WebSocket reverse proxy ke Xray (path preserved)
-    reverse_proxy /vless-aero 127.0.0.1:3002
-    reverse_proxy /vmess-aero 127.0.0.1:3003
-    reverse_proxy /trojan-aero 127.0.0.1:3004
+    # WebSocket reverse proxy
+    handle_path /vless-aero/* {
+        reverse_proxy 127.0.0.1:3002
+    }
+    handle_path /vmess-aero/* {
+        reverse_proxy 127.0.0.1:3003
+    }
+    handle_path /trojan-aero/* {
+        reverse_proxy 127.0.0.1:3004
+    }
 
-    # Static file server (dashboard)
+    # Static file server
     handle {
         file_server
     }

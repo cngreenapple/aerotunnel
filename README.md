@@ -70,7 +70,7 @@ Tiap push ke `main` otomatis build & push ke ghcr.io via [workflow](.github/work
 
 ## Client Config
 
-Semua config pake **XHTTP (HTTP/2)** — klien harus support Xray XHTTP.
+Semua config pake **H2 (HTTP/2)** — klien harus support H2/XHTTP.
 
 ### VLESS (XHTTP)
 
@@ -80,13 +80,13 @@ Semua config pake **XHTTP (HTTP/2)** — klien harus support Xray XHTTP.
 | Port | 443 |
 | UUID | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
 | Encryption | `none` |
-| Network | `xhttp` |
+| Network | `h2` |
 | Path | `/vless-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |
 | Fingerprint | `firefox` |
 
-### VMess (XHTTP)
+### VMess (H2)
 
 | Field | Value |
 |-------|-------|
@@ -95,20 +95,20 @@ Semua config pake **XHTTP (HTTP/2)** — klien harus support Xray XHTTP.
 | UUID | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
 | AlterID | `0` |
 | Security | `auto` |
-| Network | `xhttp` |
+| Network | `h2` |
 | Path | `/vmess-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |
 | Fingerprint | `firefox` |
 
-### Trojan (XHTTP)
+### Trojan (H2)
 
 | Field | Value |
 |-------|-------|
 | Address | your-domain.railway.app |
 | Port | 443 |
 | Password | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
-| Network | `xhttp` |
+| Network | `h2` |
 | Path | `/trojan-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |

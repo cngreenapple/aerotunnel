@@ -37,8 +37,13 @@ function readTrojan(buf) {
   else if (atype === 3) { const al = db[off++]; addr = db.slice(off, off+al).toString(); off += al; }
   else if (atype === 4) { const v6=[]; for(let i=0;i<8;i++) v6.push(db.readUInt16BE(off+i*2).toString(16)); addr = v6.join(':'); off += 16; }
   else return null;
-  const port = db.readUInt16BE(off);
-  return { addr, port, isUDP, data: db.slice(off+2) };
+  const port = db.readUInt16BE(off); off += 2;
+  // Skip \r\n after port
+  if (off + 1 < db.length && db[off] === 0x0d && db[off+1] === 0x0a) off += 2;
+  // Skip password hash to next \r\n
+  while (off + 1 < db.length && !(db[off] === 0x0d && db[off+1] === 0x0a)) off++;
+  if (off + 1 < db.length) off += 2;
+  return { addr, port, isUDP, data: db.slice(off) };
 }
 
 function readVLESS(buf) {
@@ -63,11 +68,14 @@ function sniff(buf) {
   if (buf.length >= 60 && buf[56] === 0x0d && buf[57] === 0x0a &&
       [0x01, 0x03].includes(buf[58]) && [0x01, 0x03, 0x04].includes(buf[59])) {
     const h = readTrojan(buf);
-    if (h) return { ...h, proto: 'trojan' };
+    if (h) return h;
   }
-  // VLESS/VMess
-  const h = readVLESS(buf);
-  if (h) return { ...h, proto: 'flash' };
+  // VLESS only (VMess needs AEAD decrypt — skip)
+  // VLESS: version(1) + cmd(1) + opt[16] + atype + addr + port
+  if (buf.length >= 20) {
+    const h = readVLESS(buf);
+    if (h) return h;
+  }
   return null;
 }
 

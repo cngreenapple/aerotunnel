@@ -1,0 +1,15 @@
+:8080 {
+    root * /app/public
+
+    handle /health {
+        respond "OK" 200
+    }
+
+    reverse_proxy /vless-aero* 127.0.0.1:3002
+    reverse_proxy /vmess-aero* 127.0.0.1:3003
+    reverse_proxy /trojan-aero* 127.0.0.1:3004
+
+    handle {
+        file_server
+    }
+}

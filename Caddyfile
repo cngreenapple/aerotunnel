@@ -1,24 +1,22 @@
 :8080 {
-    root * /app/public
-
-    # Healthcheck
     handle /health {
         respond "OK" 200
     }
 
-    # WebSocket reverse proxy
-    handle_path /vless-aero/* {
+    handle /vless-aero* {
         reverse_proxy 127.0.0.1:3002
     }
-    handle_path /vmess-aero/* {
+
+    handle /vmess-aero* {
         reverse_proxy 127.0.0.1:3003
     }
-    handle_path /trojan-aero/* {
+
+    handle /trojan-aero* {
         reverse_proxy 127.0.0.1:3004
     }
 
-    # Static file server
     handle {
+        root * /app/public
         file_server
     }
 }

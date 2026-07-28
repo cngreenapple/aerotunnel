@@ -62,28 +62,18 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 mb-3 lg:mb-2">
+  <div class="grid grid-cols-3 gap-2 mb-3 lg:mb-2">
     <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover glow">
       <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">Uptime</p>
-      <p class="text-base font-bold" id="uptime">00:00:00</p>
+      <p class="text-base font-bold" id="uptime">--</p>
     </div>
     <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover">
       <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">CPU</p>
-      <p class="text-base font-bold" id="cpu">0%</p>
+      <p class="text-base font-bold" id="cpu">--</p>
     </div>
     <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover">
       <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">RAM</p>
-      <p class="text-base font-bold" id="mem">0%</p>
-    </div>
-    <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover">
-      <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">Download</p>
-      <p class="text-sm font-bold text-green-400"><span id="tx">0 B</span></p>
-      <p class="text-[9px] text-[var(--tx-s)]"><span id="txd">0</span></p>
-    </div>
-    <div class="bg-[var(--bg-s)] border border-[var(--bd)] rounded-xl p-2.5 card-hover">
-      <p class="text-[10px] text-[var(--tx-s)] uppercase tracking-wider mb-0.5">Upload</p>
-      <p class="text-sm font-bold text-blue-400"><span id="rx">0 B</span></p>
-      <p class="text-[9px] text-[var(--tx-s)]"><span id="rxd">0</span></p>
+      <p class="text-base font-bold" id="mem">--</p>
     </div>
   </div>
 
@@ -132,7 +122,7 @@ function showDash(){document.getElementById('loginOverlay').classList.add('hidde
 
 async function checkAuth(){
   const c=getCred();
-  if(c){showDash();ref()}else{showLogin()}
+  if(c){showDash()}else{showLogin()}
 }
 checkAuth();
 
@@ -141,14 +131,10 @@ function doLogin(e){
   const u=document.getElementById('user').value.trim();
   const p=document.getElementById('pass').value.trim();
   // Check against hardcoded credentials
-  if(u==='aero'&&p==='aero'){setCred(u,p);showDash();ref()}else{document.getElementById('loginErr').classList.remove('hidden')}
+  if(u==='aero'&&p==='aero'){setCred(u,p);showDash()}else{document.getElementById('loginErr').classList.remove('hidden')}
 }
 
-function fmt(b){if(b===0)return'0 B';const k=1024,s=['B','KB','MB','GB','TB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]}
-function fmtSpd(b){if(b===0)return'0 b/s';const s=b<0?0:b*8;if(s<1000)return Math.round(s)+' b/s';if(s<1e6)return (s/1e3).toFixed(1)+' Kb/s';return(s/1e6).toFixed(2)+' Mb/s'}
 function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return(d>0?d+'d ':'')+h+'h '+m+'m'}
-async function ref(){try{const r=await fetch('/stats'),d=await r.json();document.getElementById('uptime').innerText=fmtT(d.uptime);document.getElementById('cpu').innerText=d.cpu+'%';document.getElementById('mem').innerText=d.mem+'%';document.getElementById('tx').innerText=fmt(d.tx);document.getElementById('rx').innerText=fmt(d.rx);document.getElementById('txd').innerText=fmtSpd(d.txd);document.getElementById('rxd').innerText=fmtSpd(d.rxd)}catch(e){}}
-ref();setInterval(ref,2000);
 
 // Theme toggle
 (function(){const t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.add('light');document.getElementById('themeBtn')?.querySelector('svg')?.style.setProperty('transform','rotate(180deg)')}})();

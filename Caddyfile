@@ -1,5 +1,4 @@
 :8080 {
-    tls off
     root * /app/public
     encode gzip
 

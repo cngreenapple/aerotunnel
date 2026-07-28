@@ -143,7 +143,15 @@ function toggleYaml(){
 function cpyYaml(){const t=document.getElementById('out2');if(!t.value)return;navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById('cpy2');b.innerText='Copied!';setTimeout(()=>b.innerText='Copy',2000)})}
 function dlYaml(){const t=document.getElementById('out2');if(!t.value)return;const a=document.createElement('a');a.href='data:text/yaml;charset=utf-8,'+encodeURIComponent(t.value);a.download='clash.yaml';a.click()}
 
-const h=window.location.hostname,u='f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c';
+const h=window.location.hostname;
+
+function genUUID(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:r&0x3|0x8).toString(16)})}
+const u=genUUID();
+
+function fmt(b){if(b===0)return'0 B';const k=1024,s=['B','KB','MB','GB','TB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]}
+function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return(d>0?d+'d ':'')+h+'h '+m+'m'}
+async function ref(){try{const r=await fetch('/stats'),d=await r.json()}catch(e){}}
+ref();setInterval(ref,2000);
 
 // QR via QRious
 function showQR(text){const c=document.getElementById('qr'),ctx=c.getContext('2d');const qc=document.getElementById('qr-container');if(!text){qc.classList.add('hidden');return}const q=new QRious({element:c,value:text,size:200,level:'M',background:'#0a0b10',foreground:'#ffffff'});qc.classList.remove('hidden')}

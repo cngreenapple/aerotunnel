@@ -28,21 +28,31 @@
       "listen": "127.0.0.1",
       "protocol": "vless",
       "settings": { "clients": [{ "id": "f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c" }], "decryption": "none" },
-      "streamSettings": { "network": "ws", "wsSettings": { "path": "/vless-aero" } }
+      "streamSettings": {
+        "network": "xhttp",
+        "xhttpSettings": { "path": "/vless-aero" },
+        "security": "none"
+      }
     },
     {
       "port": 3003,
       "listen": "127.0.0.1",
       "protocol": "vmess",
       "settings": { "clients": [{ "id": "f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c", "alterId": 0 }] },
-      "streamSettings": { "network": "ws", "wsSettings": { "path": "/vmess-aero" } }
+      "streamSettings": {
+        "network": "xhttp",
+        "xhttpSettings": { "path": "/vmess-aero" }
+      }
     },
     {
       "port": 3004,
       "listen": "127.0.0.1",
       "protocol": "trojan",
       "settings": { "clients": [{ "password": "f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c" }] },
-      "streamSettings": { "network": "ws", "wsSettings": { "path": "/trojan-aero" } }
+      "streamSettings": {
+        "network": "xhttp",
+        "xhttpSettings": { "path": "/trojan-aero" }
+      }
     }
   ],
   "dns": { "servers": ["https+local://8.8.8.8/dns-query"] },

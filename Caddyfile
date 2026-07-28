@@ -2,15 +2,20 @@
     root * /app/public
     encode gzip
 
-    # WebSocket reverse proxy ke Xray
+    # Healthcheck
+    handle /health {
+        respond "OK" 200
+    }
+
+    # XHTTP reverse proxy ke Xray (H2C)
     handle_path /vless-aero {
-        reverse_proxy 127.0.0.1:3002
+        reverse_proxy h2c://127.0.0.1:3002
     }
     handle_path /vmess-aero {
-        reverse_proxy 127.0.0.1:3003
+        reverse_proxy h2c://127.0.0.1:3003
     }
     handle_path /trojan-aero {
-        reverse_proxy 127.0.0.1:3004
+        reverse_proxy h2c://127.0.0.1:3004
     }
 
     # Static file server (dashboard)

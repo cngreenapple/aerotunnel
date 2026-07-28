@@ -5,19 +5,19 @@ VPN tunnel gateway — **Xray-core** + **Caddy** reverse proxy. Deploy on Railwa
 ## Architecture
 
 ```
-Client → Railway:8080 → Caddy → Xray (VLESS/VMess/Trojan XHTTP) → Internet
+Client → Railway:8080 → Caddy → Xray (VLESS/VMess/Trojan WS) → Internet
 ```
 
-- **Caddy** serves dashboard (static), reverse proxy XHTTP ke Xray
+- **Caddy** serves dashboard (static), reverse proxy WebSocket ke Xray
 - **Xray-core** handles protocol encryption/decryption
 
 ## Paths
 
 | Path | Protocol |
 |------|----------|
-| `/vless-aero` | VLESS XHTTP |
-| `/vmess-aero` | VMess XHTTP |
-| `/trojan-aero` | Trojan XHTTP |
+| `/vless-aero` | VLESS WebSocket |
+| `/vmess-aero` | VMess WebSocket |
+| `/trojan-aero` | Trojan WebSocket |
 
 ## UUID
 
@@ -70,9 +70,9 @@ Tiap push ke `main` otomatis build & push ke ghcr.io via [workflow](.github/work
 
 ## Client Config
 
-Semua config pake **H2 (HTTP/2)** — klien harus support H2/XHTTP.
+Semua config pake **WebSocket (WS)** — kompatibel dengan semua klien.
 
-### VLESS (XHTTP)
+### VLESS (WS)
 
 | Field | Value |
 |-------|-------|
@@ -80,13 +80,13 @@ Semua config pake **H2 (HTTP/2)** — klien harus support H2/XHTTP.
 | Port | 443 |
 | UUID | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
 | Encryption | `none` |
-| Network | `h2` |
+| Network | `ws` |
 | Path | `/vless-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |
 | Fingerprint | `firefox` |
 
-### VMess (H2)
+### VMess (WS)
 
 | Field | Value |
 |-------|-------|
@@ -95,20 +95,20 @@ Semua config pake **H2 (HTTP/2)** — klien harus support H2/XHTTP.
 | UUID | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
 | AlterID | `0` |
 | Security | `auto` |
-| Network | `h2` |
+| Network | `ws` |
 | Path | `/vmess-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |
 | Fingerprint | `firefox` |
 
-### Trojan (H2)
+### Trojan (WS)
 
 | Field | Value |
 |-------|-------|
 | Address | your-domain.railway.app |
 | Port | 443 |
 | Password | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
-| Network | `h2` |
+| Network | `ws` |
 | Path | `/trojan-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |

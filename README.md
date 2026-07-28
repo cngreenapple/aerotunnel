@@ -1,23 +1,23 @@
 # 🚀 AeroTunnel
 
-VPN tunnel gateway — **Xray-core** + **Node.js** proxy. Deploy on Railway or self-host via Docker.
+VPN tunnel gateway — **Xray-core** + **Caddy** reverse proxy. Deploy on Railway or self-host via Docker.
 
 ## Architecture
 
 ```
-Client → Railway:8080 → Node.js WSS → Xray (VLESS/VMess/Trojan WS) → Internet
+Client → Railway:8080 → Caddy → Xray (VLESS/VMess/Trojan XHTTP) → Internet
 ```
 
-- **Node.js** serves dashboard, proxies WebSocket to Xray
+- **Caddy** serves dashboard (static), reverse proxy XHTTP ke Xray
 - **Xray-core** handles protocol encryption/decryption
 
 ## Paths
 
 | Path | Protocol |
 |------|----------|
-| `/vless-aero` | VLESS WebSocket |
-| `/vmess-aero` | VMess WebSocket |
-| `/trojan-aero` | Trojan WebSocket |
+| `/vless-aero` | VLESS XHTTP |
+| `/vmess-aero` | VMess XHTTP |
+| `/trojan-aero` | Trojan XHTTP |
 
 ## UUID
 
@@ -41,48 +41,38 @@ Client → Railway:8080 → Node.js WSS → Xray (VLESS/VMess/Trojan WS) → Int
 
 ### Docker (self-hosted)
 
-Build & run lokal:
-
 ```bash
-docker build -t aerotunnel .
-docker run -d -p 8080:8080 --name aerotunnel aerotunnel
+docker pull ghcr.io/cngreenapple/aerotunnel:latest
+docker run -d -p 8080:8080 --name aerotunnel ghcr.io/cngreenapple/aerotunnel:latest
 ```
 
 Akses `http://localhost:8080`, login `aero:aero`.
 
-### Docker Hub
-
-Image siap pakai: [`cnacna/aerotunnel`](https://hub.docker.com/r/cnacna/aerotunnel)
-
-```bash
-docker pull cnacna/aerotunnel:latest
-docker run -d -p 8080:8080 --name aerotunnel cnacna/aerotunnel:latest
-```
-
 ### GitHub Actions (CI/CD)
 
-Tiap push ke `main` otomatis build & push ke Docker Hub via [workflow](.github/workflows/docker-build.yml).
+Tiap push ke `main` otomatis build & push ke ghcr.io via [workflow](.github/workflows/docker-build.yml).
 
 ## Dashboard
 
-- Real-time stats: uptime, CPU, RAM, traffic
 - Dark/light theme toggle
 - Config generator: URI + QR code + full Clash YAML (with DNS, proxy-groups, rules)
 - Expand/collapse YAML preview, Copy & Download buttons
-- Responsive: compact mobile, full desktop
 
 ## Files
 
 | File | Role |
 |------|------|
-| `server.js` | HTTP+WebSocket server, `/stats`, `/health`, WS proxy to Xray |
 | `xray-docker/config.json` | Xray config (inbounds, fallbacks, DNS) |
-| `public/dashboard.html` | Web dashboard with built-in login |
-| `Dockerfile` | Build: install Xray, copy app, run |
+| `Caddyfile` | Caddy config: reverse proxy, healthcheck, static files |
+| `start.sh` | Entrypoint: start Xray background + Caddy foreground |
+| `public/index.html` | Web dashboard with built-in login |
+| `Dockerfile` | Build: install Caddy + Xray on Alpine |
 
 ## Client Config
 
-### VLESS (WS)
+Semua config pake **XHTTP (HTTP/2)** — klien harus support Xray XHTTP.
+
+### VLESS (XHTTP)
 
 | Field | Value |
 |-------|-------|
@@ -90,13 +80,13 @@ Tiap push ke `main` otomatis build & push ke Docker Hub via [workflow](.github/w
 | Port | 443 |
 | UUID | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
 | Encryption | `none` |
-| Network | `ws` |
+| Network | `xhttp` |
 | Path | `/vless-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |
 | Fingerprint | `firefox` |
 
-### VMess (WS)
+### VMess (XHTTP)
 
 | Field | Value |
 |-------|-------|
@@ -105,20 +95,20 @@ Tiap push ke `main` otomatis build & push ke Docker Hub via [workflow](.github/w
 | UUID | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
 | AlterID | `0` |
 | Security | `auto` |
-| Network | `ws` |
+| Network | `xhttp` |
 | Path | `/vmess-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |
 | Fingerprint | `firefox` |
 
-### Trojan (WS)
+### Trojan (XHTTP)
 
 | Field | Value |
 |-------|-------|
 | Address | your-domain.railway.app |
 | Port | 443 |
 | Password | `f3b7c97d-4a53-4b54-a1d5-84d9df4fd91c` |
-| Network | `ws` |
+| Network | `xhttp` |
 | Path | `/trojan-aero` |
 | TLS | `tls` |
 | SNI | your-domain.railway.app |
@@ -126,4 +116,4 @@ Tiap push ke `main` otomatis build & push ke Docker Hub via [workflow](.github/w
 
 ---
 
-*Premium tunneling backend — AeroTunnel*
+*AeroTunnel — Premium Tunneling Backend*

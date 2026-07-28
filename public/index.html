@@ -119,8 +119,6 @@ function doLogin(e){
   if(u==='aero'&&p==='aero'){setCred(u,p);showDash()}else{document.getElementById('loginErr').classList.remove('hidden')}
 }
 
-function fmtT(s){const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return(d>0?d+'d ':'')+h+'h '+m+'m'}
-
 // Theme toggle
 (function(){const t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.add('light');document.getElementById('themeBtn')?.querySelector('svg')?.style.setProperty('transform','rotate(180deg)')}})();
 function toggleTheme(){const r=document.documentElement;r.classList.toggle('light');localStorage.setItem('theme',r.classList.contains('light')?'light':'dark');const b=document.getElementById('themeBtn')?.querySelector('svg');if(b)b.style.transform=r.classList.contains('light')?'rotate(180deg)':'rotate(0)'}

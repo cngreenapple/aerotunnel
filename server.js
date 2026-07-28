@@ -6,15 +6,10 @@ const url = require('url');
 const fs = require('fs');
 const os = require('os');
 
+const PORT = process.env.PORT || 8080;
 const WS_OPEN = 1;
-const AUTH = 'Basic ' + Buffer.from('aero:aero').toString('base64');
 
-function serve(res, status, type, body) {
-  res.writeHead(status, { 'Content-Type': type, 'Content-Length': Buffer.byteLength(body) });
-  res.end(body);
-}
-
-// ==================== STATS ====================
+// Stats
 let stats = { rx: 0, tx: 0 };
 let activeUDP = new Map();
 
@@ -29,77 +24,82 @@ function getCPU() {
 }
 let cpuPrev = getCPU();
 
-// ==================== PROTOCOL HANDLERS ====================
+// ==================== PROTOCOL PARSERS ====================
 
-// Trojan header: 56 bytes salt + 0d0a + cmd(01/03) + atype + addr + port + data
 function readTrojan(buf) {
   const db = buf.slice(58);
   if (db.length < 6) return null;
   const isUDP = db[0] === 3;
   if (db[0] !== 1 && db[0] !== 3) return null;
   const atype = db[1];
-  let addrLen, addrOff = 2, addr;
-  if (atype === 1) { addrLen = 4; addr = Array.from(db.slice(addrOff, addrOff+4)).join('.'); }
-  else if (atype === 3) { addrLen = db[addrOff] + 1; addrOff++; addr = db.slice(addrOff, addrOff+db[addrOff]).toString(); addrLen = db[addrOff] + 1; }
-  else if (atype === 4) { addrLen = 16; const v6=[]; for(let i=0;i<8;i++) v6.push(db.readUInt16BE(addrOff+i*2).toString(16)); addr = v6.join(':'); }
+  let addr, off = 2;
+  if (atype === 1) { addr = Array.from(db.slice(off, off+4)).join('.'); off += 4; }
+  else if (atype === 3) { const al = db[off++]; addr = db.slice(off, off+al).toString(); off += al; }
+  else if (atype === 4) { const v6=[]; for(let i=0;i<8;i++) v6.push(db.readUInt16BE(off+i*2).toString(16)); addr = v6.join(':'); off += 16; }
   else return null;
-  const port = db.readUInt16BE(addrOff + addrLen);
-  return { addr, port, isUDP, data: db.slice(addrOff + addrLen + 2), version: null };
+  const port = db.readUInt16BE(off);
+  return { addr, port, isUDP, data: db.slice(off+2) };
 }
 
-// VLESS/VMess header: version(1) + cmd(1) + opt(16) + atype + addr + port + data
 function readVLESS(buf) {
-  const ver = buf[0];
-  if (ver !== 0 && ver !== 1) return null;
   const optLen = buf[17];
   const cmd = buf[18 + optLen];
   const isUDP = cmd === 2;
   if (cmd !== 1 && cmd !== 2) return null;
   const portOff = 18 + optLen + 1;
   const port = buf.readUInt16BE(portOff);
-  let addrOff = portOff + 2;
-  const atype = buf[addrOff]; addrOff++;
+  let off = portOff + 2;
+  const atype = buf[off++];
   let addr;
-  if (atype === 1) { addr = Array.from(buf.slice(addrOff, addrOff+4)).join('.'); addrOff += 4; }
-  else if (atype === 3) { const al = buf[addrOff]; addrOff++; addr = buf.slice(addrOff, addrOff+al).toString(); addrOff += al; }
-  else if (atype === 4) { const v6=[]; for(let i=0;i<8;i++) v6.push(buf.readUInt16BE(addrOff+i*2).toString(16)); addr = v6.join(':'); addrOff += 16; }
+  if (atype === 1) { addr = Array.from(buf.slice(off, off+4)).join('.'); off += 4; }
+  else if (atype === 3) { const al = buf[off++]; addr = buf.slice(off, off+al).toString(); off += al; }
+  else if (atype === 4) { const v6=[]; for(let i=0;i<8;i++) v6.push(buf.readUInt16BE(off+i*2).toString(16)); addr = v6.join(':'); off += 16; }
   else return null;
-  return { addr, port, isUDP, data: buf.slice(addrOff), version: ver };
+  return { addr, port, isUDP, data: buf.slice(off) };
 }
 
 function sniff(buf) {
-  // Trojan: check 0d0a delimiter at byte 56-57
-  if (buf.length >= 60 && buf[56] === 0x0d && buf[57] === 0x0a) return readTrojan(buf);
+  // Trojan: bytes 56-59 = 0d 0a + cmd(01/03) + atype(01/03/04)
+  if (buf.length >= 60 && buf[56] === 0x0d && buf[57] === 0x0a &&
+      [0x01, 0x03].includes(buf[58]) && [0x01, 0x03, 0x04].includes(buf[59])) {
+    const h = readTrojan(buf);
+    if (h) return { ...h, proto: 'trojan' };
+  }
   // VLESS/VMess
-  return readVLESS(buf);
+  const h = readVLESS(buf);
+  if (h) return { ...h, proto: 'flash' };
+  return null;
 }
 
-// ==================== UDP HANDLER ====================
-function handleUDP(addr, port, chunk, ws, respHeader) {
+// ==================== UDP ====================
+function handleUDP(addr, port, chunk, ws) {
   const key = `${addr}:${port}:${Date.now()}`;
   const sock = dgram.createSocket('udp4');
   activeUDP.set(key, { sock, ws });
-
   sock.on('error', () => { try{sock.close()}catch(e){}; activeUDP.delete(key); });
   sock.on('message', (msg) => {
     stats.tx += msg.length;
-    if (ws.readyState === WS_OPEN) {
-      const p = respHeader ? Buffer.concat([Buffer.from(respHeader), msg]) : msg;
-      ws.send(p);
-      respHeader = null;
-    }
+    if (ws.readyState === WS_OPEN) ws.send(msg);
   });
-
   sock.send(chunk, port, addr, (err) => { if (err) { try{sock.close()}catch(e){}; activeUDP.delete(key); } });
-
-  // idle timeout 30s
   const tmr = setTimeout(() => { try{sock.close()}catch(e){}; activeUDP.delete(key); }, 30000);
-  sock.on('message', () => { tmr.refresh(); });
+  sock.on('message', () => tmr.refresh());
+}
+
+function cleanupUDP(ws) {
+  for (const [k, v] of activeUDP) {
+    if (v.ws === ws) { try{v.sock.close()}catch(e){}; activeUDP.delete(k); }
+  }
 }
 
 // ==================== HTTP SERVER ====================
 const server = http.createServer((req, res) => {
   const p = url.parse(req.url, true);
+
+  if (p.pathname === '/health') {
+    res.writeHead(200); res.end('OK');
+    return;
+  }
 
   if (p.pathname === '/stats') {
     const mem = process.memoryUsage();
@@ -110,23 +110,22 @@ const server = http.createServer((req, res) => {
     cpuPrev = cpuCur;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      uptime: Math.floor(process.uptime()),
-      cpu: cpuPct,
-      mem: memPct,
+      uptime: Math.floor(process.uptime()), cpu: cpuPct, mem: memPct,
       rx: stats.rx, tx: stats.tx
     }));
     return;
   }
 
   if (p.pathname === '/') {
-    serve(res, 200, 'text/html', fs.readFileSync('./public/index.html', 'utf-8'));
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(fs.readFileSync('./public/index.html', 'utf-8'));
     return;
   }
 
   res.writeHead(404); res.end();
 });
 
-// ==================== WEBSOCKET SERVER ====================
+// ==================== WEBSOCKET ====================
 const wss = new WebSocket.Server({ server, perMessageDeflate: false });
 
 wss.on('connection', (ws, req) => {
@@ -138,18 +137,13 @@ wss.on('connection', (ws, req) => {
   ws.on('message', (msg) => {
     const buf = Buffer.from(msg);
     stats.rx += buf.length;
-
     if (remote) { remote.write(buf); return; }
 
     const h = sniff(buf);
     if (!h) { ws.close(1002, 'bad protocol'); return; }
 
-    if (h.isUDP) {
-      handleUDP(h.addr, h.port, h.data, ws, h.version != null ? [h.version, 0] : null);
-      return;
-    }
+    if (h.isUDP) { handleUDP(h.addr, h.port, h.data, ws); return; }
 
-    // TCP
     const sock = net.createConnection({ host: h.addr, port: h.port }, () => {
       sock.write(h.data);
       remote = sock;
@@ -166,11 +160,4 @@ wss.on('connection', (ws, req) => {
   ws.on('error', () => cleanupUDP(ws));
 });
 
-function cleanupUDP(ws) {
-  for (const [k, v] of activeUDP) {
-    if (v.ws === ws) { try{v.sock.close()}catch(e){}; activeUDP.delete(k); }
-  }
-}
-
-const PORT = process.env.PORT || 8080;
 server.listen(PORT, '0.0.0.0', () => console.log('AeroTunnel active on :' + PORT));
